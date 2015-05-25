@@ -43,6 +43,14 @@ class TestEncryptedField(object):
         with pytest.raises(ImproperlyConfigured):
             fields.EncryptedTextField(key='foo', keys=['a', 'b'])
 
+    def test_raw_key(self):
+        """Can supply raw_key=True to avoid HKDF."""
+        k1 = Fernet.generate_key()
+        f = fields.EncryptedTextField(key=k1, raw_keys=True)
+        fernet = Fernet(k1)
+
+        assert fernet.decrypt(f.fernet.encrypt(b'foo')) == b'foo'
+
 
 @pytest.mark.parametrize(
     'model,vals',

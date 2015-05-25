@@ -22,6 +22,7 @@ class EncryptedFieldMixin(models.Field):
     def __init__(self, *args, **kwargs):
         key = kwargs.pop('key', None)
         keys = kwargs.pop('keys', None)
+        self.raw_keys = kwargs.pop('raw_keys', False)
         if (key is not None) and (keys is not None):
             raise ImproperlyConfigured(
                 "Cannot pass both `key` and `keys` to encrypted field.")
@@ -34,6 +35,8 @@ class EncryptedFieldMixin(models.Field):
 
     @cached_property
     def fernet_keys(self):
+        if self.raw_keys:
+            return self.keys
         return [hkdf.derive_fernet_key(k) for k in self.keys]
 
     @cached_property
