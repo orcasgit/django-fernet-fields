@@ -62,11 +62,6 @@ class TestEncryptedField(object):
 
         assert fernet.decrypt(f.fernet.encrypt(b'foo')) == b'foo'
 
-    def test_no_hkdf_no_secret_key_fallback(self):
-        """Cannot fall back to SECRET_KEY if HKDF is disabled."""
-        with pytest.raises(ImproperlyConfigured):
-            fields.EncryptedTextField(use_hkdf=False)
-
     def test_primary_key_not_allowed(self):
         with pytest.raises(ImproperlyConfigured):
             fields.EncryptedIntegerField(primary_key=True, key='secret')

@@ -24,7 +24,6 @@ class EncryptedFieldMixin(models.Field):
 
     @@@ TODO:
     - help with migration from non-encrypted field to encrypted field?
-    - docs (no lookups)
 
     """
     def __init__(self, *args, **kwargs):
@@ -53,15 +52,7 @@ class EncryptedFieldMixin(models.Field):
             else:
                 keys = getattr(settings, 'FERNET_KEYS', None)
                 if keys is None:
-                    if self.use_hkdf:
-                        keys = [settings.SECRET_KEY]
-                    else:
-                        raise ImproperlyConfigured(
-                            "If FERNET_USE_HKDF (or use_hkdf) is False, "
-                            "then fallback to SECRET_KEY is not possible; "
-                            "either FERNET_KEYS must be set or `key(s)` "
-                            "must be passed to all encrypted fields."
-                        )
+                    keys = [settings.SECRET_KEY]
         self.keys = keys
         super(EncryptedFieldMixin, self).__init__(*args, **kwargs)
 
