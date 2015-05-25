@@ -29,3 +29,7 @@ class EncryptedDateTime(models.Model):
 
 class EncryptedUnique(models.Model):
     value = fields.EncryptedTextField(unique=True)
+
+
+class EncryptedIndex(models.Model):
+    value = fields.EncryptedTextField(db_index=True)

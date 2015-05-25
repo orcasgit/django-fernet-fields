@@ -66,10 +66,6 @@ class TestEncryptedField(object):
         with pytest.raises(ImproperlyConfigured):
             fields.EncryptedIntegerField(primary_key=True, key='secret')
 
-    def test_db_index_not_allowed(self):
-        with pytest.raises(ImproperlyConfigured):
-            fields.EncryptedIntegerField(db_index=True, key='secret')
-
 
 @pytest.mark.parametrize(
     'model,vals',
@@ -131,7 +127,7 @@ def test_nullable(db):
 
 
 @pytest.mark.skipif(
-    connection.vendor != 'postgresql', reason="unique only works on PG")
+    connection.vendor != 'postgresql', reason="indexes only work on PG")
 class TestUniqueEncryptedField(object):
     def test_unique(self, db):
         """Encrypted field can enforce uniqueness."""
@@ -141,18 +137,25 @@ class TestUniqueEncryptedField(object):
         with pytest.raises(IntegrityError):
             models.EncryptedUnique.objects.create(value='foo')
 
-    def test_lookup(self, db):
-        """Can do an exact lookup on a unique encrypted field."""
-        models.EncryptedUnique.objects.create(value='foo')
-        models.EncryptedUnique.objects.create(value='bar')
-        found = models.EncryptedUnique.objects.get(value='bar')
+
+@pytest.mark.skipif(
+    connection.vendor != 'postgresql', reason="indexes only work on PG")
+@pytest.mark.parametrize(
+    'model', [models.EncryptedUnique, models.EncryptedIndex])
+class TestIndexedLookups(object):
+    def test_lookup(self, db, model):
+        """Can do an exact lookup on an indexed encrypted field."""
+        model.objects.create(value='foo')
+        model.objects.create(value='bar')
+        found = model.objects.get(value='bar')
 
         assert found.value == 'bar'
 
-    def test_lookup_uses_index(self, db):
-        models.EncryptedUnique.objects.create(value='foo')
-        models.EncryptedUnique.objects.create(value='bar')
-        qs = models.EncryptedUnique.objects.filter(value='bar')
+    def test_lookup_uses_index(self, db, model):
+        """Exact lookup on indexed encrypted field uses index."""
+        model.objects.create(value='foo')
+        model.objects.create(value='bar')
+        qs = model.objects.filter(value='bar')
         sql, params = qs.query.sql_with_params()
         with connection.cursor() as cur:
             cur.execute('EXPLAIN ' + sql, params)

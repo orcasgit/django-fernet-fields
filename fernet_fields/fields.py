@@ -25,13 +25,10 @@ class EncryptedFieldMixin(models.Field):
     """A field mixin to encrypt values using Fernet symmetric encryption."""
     def __init__(self, *args, **kwargs):
         unique = kwargs.pop('unique', False)
+        db_index = kwargs.pop('db_index', False)
         if kwargs.get('primary_key'):
             raise ImproperlyConfigured(
                 "EncryptedFieldMixin does not support primary_key=True."
-            )
-        if kwargs.get('db_index'):
-            raise ImproperlyConfigured(
-                "EncryptedFieldMixin does not support db_index=True."
             )
         key = kwargs.pop('key', None)
         keys = kwargs.pop('keys', None)
@@ -52,6 +49,8 @@ class EncryptedFieldMixin(models.Field):
         self.prepend_hash = None
         if unique:
             self.prepend_hash = 'unique'
+        elif db_index:
+            self.prepend_hash = 'index'
 
     @cached_property
     def fernet_keys(self):
