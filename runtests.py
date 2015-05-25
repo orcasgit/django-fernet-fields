@@ -5,6 +5,6 @@ import os
 import sys
 
 os.environ.setdefault(
-    'DJANGO_SETTINGS_MODULE', 'fernet_fields.test.settings')
+    'DJANGO_SETTINGS_MODULE', 'fernet_fields.test.settings.sqlite')
 
 sys.exit(pytest.main())

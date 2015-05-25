@@ -19,8 +19,8 @@ Django model fields whose value is transparently encrypted using the `Fernet
 recipe`_ from the `cryptography`_ library.
 
 ``django-fernet-fields`` supports `Django`_ 1.8.2 and later on Python 2.7, 3.3,
-3.4, pypy, and pypy3. Currently PostgreSQL is the only supported database, but
-other backends could easily be supported as well.
+3.4, pypy, and pypy3. Currently PostgreSQL and SQLite are the only supported
+databases, but support for other backends could easily be added.
 
 .. _Django: http://www.djangoproject.com/
 .. _Fernet recipe: https://cryptography.io/en/latest/fernet/

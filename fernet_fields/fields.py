@@ -64,9 +64,17 @@ class EncryptedFieldMixin(models.Field):
         return MultiFernet([Fernet(k) for k in self.fernet_keys])
 
     def db_type(self, connection):
+        # PostgreSQL and SQLite both support the BYTEA type.
         return 'bytea'
 
-    def get_prep_value(self, value):
+    def get_internal_type(self):
+        """Prevent Django from doing type conversions on encrypted data."""
+        return None
+
+    def get_db_prep_value(self, *args, **kwargs):
+        value = super(
+            EncryptedFieldMixin, self
+        ).get_db_prep_value(*args, **kwargs)
         if value is not None:
             return self.fernet.encrypt(force_bytes(value))
 

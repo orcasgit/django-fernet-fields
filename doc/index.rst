@@ -14,8 +14,8 @@ Prerequisites
 ``django-fernet-fields`` supports `Django`_ 1.8.2 and later on Python 2.7, 3.3,
 3.4, pypy, and pypy3.
 
-PostgreSQL is currently the only database with built-in support; support for
-other database backends should be easy to add.
+PostgreSQL and SQLite are currently the only databases with built-in support;
+support for other database backends should be easy to add.
 
 .. _Django: http://www.djangoproject.com/
 
