@@ -1,5 +1,6 @@
 from datetime import date, datetime
 
+from django.core.exceptions import FieldError
 from django.db import connection
 from django.utils.encoding import force_bytes, force_text
 import pytest
@@ -48,7 +49,9 @@ class TestEncryptedFieldQueries(object):
             models.EncryptedDate: (
                 lambda s: datetime.strptime(force_text(s), '%Y-%m-%d').date()),
             models.EncryptedDateTime: (
-                lambda s: datetime.strptime(force_text(s), '%Y-%m-%d %H:%M:%S')),
+                lambda s: datetime.strptime(
+                    force_text(s), '%Y-%m-%d %H:%M:%S')
+            ),
         }[model]
 
         assert list(map(coerce, data)) == [vals[0]]
@@ -67,6 +70,13 @@ class TestEncryptedFieldQueries(object):
         found = model.objects.get()
 
         assert found.value == vals[1]
+
+    def test_lookups_raise_field_error(self, db, model, vals):
+        """Lookups are not allowed (they cannot succeed)."""
+        model.objects.create(value=vals[0])
+
+        with pytest.raises(FieldError):
+            model.objects.get(value=vals[0])
 
 
 def test_nullable(db):

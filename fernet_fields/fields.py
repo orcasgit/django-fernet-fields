@@ -1,4 +1,5 @@
 from cryptography.fernet import Fernet
+from django.core.exceptions import FieldError
 from django.db import models
 from django.utils.encoding import force_bytes, force_text
 from django.utils.functional import cached_property
@@ -29,6 +30,9 @@ class EncryptedFieldMixin(models.Field):
     def get_prep_value(self, value):
         if value is not None:
             return self.fernet.encrypt(force_bytes(value))
+
+    def get_prep_lookup(self, lookup_type, value):
+        raise FieldError("Cannot perform lookups against an encrypted field.")
 
     def from_db_value(self, value, expression, connection, context):
         if value is not None:
