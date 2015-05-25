@@ -30,34 +30,46 @@ class EncryptedFieldMixin(models.Field):
     def __init__(self, *args, **kwargs):
         if kwargs.get('primary_key'):
             raise ImproperlyConfigured(
-                "EncryptedFieldMixin does not support primary key fields."
+                "EncryptedFieldMixin does not support primary_key=True."
             )
         if kwargs.get('unique'):
             raise ImproperlyConfigured(
-                "EncryptedFieldMixin does not support unique fields."
+                "EncryptedFieldMixin does not support unique=True."
             )
         if kwargs.get('db_index'):
             raise ImproperlyConfigured(
-                "EncryptedFieldMixin does not support indexing fields."
+                "EncryptedFieldMixin does not support db_index=True."
             )
         key = kwargs.pop('key', None)
         keys = kwargs.pop('keys', None)
-        self.raw_keys = kwargs.pop('raw_keys', False)
+        self.use_hkdf = kwargs.pop(
+            'use_hkdf', getattr(settings, 'FERNET_USE_HKDF', True))
         if (key is not None) and (keys is not None):
             raise ImproperlyConfigured(
                 "Cannot pass both `key` and `keys` to encrypted field.")
         if keys is None:
-            if key is None:
-                key = getattr(settings, 'FERNET_KEY', settings.SECRET_KEY)
-            keys = [key]
+            if key is not None:
+                keys = [key]
+            else:
+                keys = getattr(settings, 'FERNET_KEYS', None)
+                if keys is None:
+                    if self.use_hkdf:
+                        keys = [settings.SECRET_KEY]
+                    else:
+                        raise ImproperlyConfigured(
+                            "If FERNET_USE_HKDF (or use_hkdf) is False, "
+                            "then fallback to SECRET_KEY is not possible; "
+                            "either FERNET_KEYS must be set or `key(s)` "
+                            "must be passed to all encrypted fields."
+                        )
         self.keys = keys
         super(EncryptedFieldMixin, self).__init__(*args, **kwargs)
 
     @cached_property
     def fernet_keys(self):
-        if self.raw_keys:
-            return self.keys
-        return [hkdf.derive_fernet_key(k) for k in self.keys]
+        if self.use_hkdf:
+            return [hkdf.derive_fernet_key(k) for k in self.keys]
+        return self.keys
 
     @cached_property
     def fernet(self):

@@ -17,11 +17,11 @@ class TestEncryptedField(object):
         assert f.deconstruct()[3]['keys'] == ['secret']
 
     def test_key_from_settings(self, settings):
-        """If no key is provided for a field, use settings.FERNET_KEY."""
-        settings.FERNET_KEY = 'fernet'
+        """If no key is provided for a field, use settings.FERNET_KEYS."""
+        settings.FERNET_KEYS = ['secret']
         f = fields.EncryptedTextField()
 
-        assert f.keys == [settings.FERNET_KEY]
+        assert f.keys == settings.FERNET_KEYS
 
     def test_fallback_to_secret_key(self, settings):
         """If no key given and no FERNET_KEY setting, use SECRET_KEY."""
@@ -31,10 +31,12 @@ class TestEncryptedField(object):
 
     def test_key_rotation(self):
         """Can supply multiple `keys` for key rotation."""
-        f = fields.EncryptedTextField(keys=['key1', 'key2'])
+        key1 = Fernet.generate_key()
+        key2 = Fernet.generate_key()
+        f = fields.EncryptedTextField(keys=[key1, key2], use_hkdf=False)
 
-        enc1 = Fernet(f.fernet_keys[0]).encrypt(b'enc1')
-        enc2 = Fernet(f.fernet_keys[1]).encrypt(b'enc2')
+        enc1 = Fernet(key1).encrypt(b'enc1')
+        enc2 = Fernet(key2).encrypt(b'enc2')
 
         assert f.fernet.decrypt(enc1) == b'enc1'
         assert f.fernet.decrypt(enc2) == b'enc2'
@@ -43,13 +45,27 @@ class TestEncryptedField(object):
         with pytest.raises(ImproperlyConfigured):
             fields.EncryptedTextField(key='foo', keys=['a', 'b'])
 
-    def test_raw_key(self):
-        """Can supply raw_key=True to avoid HKDF."""
+    def test_no_hkdf(self):
+        """Can supply use_hkdf=False to avoid HKDF."""
         k1 = Fernet.generate_key()
-        f = fields.EncryptedTextField(key=k1, raw_keys=True)
+        f = fields.EncryptedTextField(key=k1, use_hkdf=False)
         fernet = Fernet(k1)
 
         assert fernet.decrypt(f.fernet.encrypt(b'foo')) == b'foo'
+
+    def test_no_hkdf_setting(self, settings):
+        """Can set FERNET_USE_HKDF=False to globally avoid HKDF."""
+        settings.FERNET_USE_HKDF = False
+        k1 = Fernet.generate_key()
+        f = fields.EncryptedTextField(key=k1)
+        fernet = Fernet(k1)
+
+        assert fernet.decrypt(f.fernet.encrypt(b'foo')) == b'foo'
+
+    def test_no_hkdf_no_secret_key_fallback(self):
+        """Cannot fall back to SECRET_KEY if HKDF is disabled."""
+        with pytest.raises(ImproperlyConfigured):
+            fields.EncryptedTextField(use_hkdf=False)
 
     def test_primary_key_not_allowed(self):
         with pytest.raises(ImproperlyConfigured):
