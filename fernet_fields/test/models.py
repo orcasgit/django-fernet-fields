@@ -25,3 +25,7 @@ class EncryptedDate(models.Model):
 
 class EncryptedDateTime(models.Model):
     value = fields.EncryptedDateTimeField(key='secret')
+
+
+class EncryptedUnique(models.Model):
+    value = fields.EncryptedTextField(unique=True)

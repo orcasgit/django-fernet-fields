@@ -2,7 +2,7 @@ from cryptography.fernet import Fernet
 from datetime import date, datetime
 
 from django.core.exceptions import FieldError, ImproperlyConfigured
-from django.db import connection
+from django.db import connection, IntegrityError
 from django.utils.encoding import force_bytes, force_text
 import pytest
 
@@ -66,10 +66,6 @@ class TestEncryptedField(object):
         with pytest.raises(ImproperlyConfigured):
             fields.EncryptedIntegerField(primary_key=True, key='secret')
 
-    def test_unique_not_allowed(self):
-        with pytest.raises(ImproperlyConfigured):
-            fields.EncryptedIntegerField(unique=True, key='secret')
-
     def test_db_index_not_allowed(self):
         with pytest.raises(ImproperlyConfigured):
             fields.EncryptedIntegerField(db_index=True, key='secret')
@@ -132,3 +128,12 @@ def test_nullable(db):
     found = models.EncryptedInt.objects.get()
 
     assert found.value is None
+
+
+def test_unique(db):
+    """Encrypted field can enforce uniqueness."""
+    models.EncryptedUnique.objects.create(value='foo')
+    models.EncryptedUnique.objects.create(value='bar')
+
+    with pytest.raises(IntegrityError):
+        models.EncryptedUnique.objects.create(value='foo')
