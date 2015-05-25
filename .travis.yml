@@ -5,16 +5,28 @@ env:
     - DJF_USERNAME=postgres
   # Keep this list up to date using `tox -l`
   matrix:
-    - TOXENV=py27-django18
-    - TOXENV=py27-djangotrunk
-    - TOXENV=py33-django18
-    - TOXENV=py33-djangotrunk
-    - TOXENV=py34-django18
-    - TOXENV=py34-djangotrunk
-    - TOXENV=pypy-django18
-    - TOXENV=pypy-djangotrunk
-    - TOXENV=pypy3-django18
-    - TOXENV=pypy3-djangotrunk
+    - TOXENV=py27-django18-pg
+    - TOXENV=py27-django18-sqlite
+    - TOXENV=py27-djangotrunk-pg
+    - TOXENV=py27-djangotrunk-sqlite
+    - TOXENV=py33-django18-pg
+    - TOXENV=py33-django18-sqlite
+    - TOXENV=py33-djangotrunk-pg
+    - TOXENV=py33-djangotrunk-sqlite
+    - TOXENV=py34-django18-pg
+    - TOXENV=py34-django18-sqlite
+    - TOXENV=py34-djangotrunk-pg
+    - TOXENV=py34-djangotrunk-sqlite
+    - TOXENV=pypy-django18-pg
+    - TOXENV=pypy-django18-sqlite
+    - TOXENV=pypy-djangotrunk-pg
+    - TOXENV=pypy-djangotrunk-sqlite
+    - TOXENV=pypy3-django18-pg
+    - TOXENV=pypy3-django18-sqlite
+    - TOXENV=pypy3-djangotrunk-pg
+    - TOXENV=pypy3-djangotrunk-sqlite
+    - TOXENV=flake8
+    - TOXENV=docs
 
 install: travis_retry pip install tox coveralls
 
