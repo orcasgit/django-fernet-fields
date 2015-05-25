@@ -7,8 +7,6 @@ env:
   matrix:
     - TOXENV=py27-django18
     - TOXENV=py27-djangotrunk
-    - TOXENV=py32-django18
-    - TOXENV=py32-djangotrunk
     - TOXENV=py33-django18
     - TOXENV=py33-djangotrunk
     - TOXENV=py34-django18
