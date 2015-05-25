@@ -8,6 +8,8 @@ from django.db import models
 from django.utils.encoding import force_bytes, force_text
 from django.utils.functional import cached_property
 
+from . import hkdf
+
 
 class EncryptedFieldMixin(models.Field):
     """A field mixin to encrypt any field type.
@@ -32,20 +34,13 @@ class EncryptedFieldMixin(models.Field):
 
     @cached_property
     def fernet_keys(self):
-        return [self.convert_key(k) for k in self.keys]
+        return [hkdf.derive_fernet_key(k) for k in self.keys]
 
     @cached_property
     def fernet(self):
         if len(self.fernet_keys) == 1:
             return Fernet(self.fernet_keys[0])
         return MultiFernet([Fernet(k) for k in self.fernet_keys])
-
-    def convert_key(self, key):
-        """Convert arbitrary string key to Fernet format."""
-        if isinstance(key, bytes) and len(key) == 44 and key.endswith(b'='):
-            return key
-        return base64.urlsafe_b64encode(
-            hashlib.sha256(force_bytes(key)).digest())
 
     def db_type(self, connection):
         return 'bytea'

@@ -12,9 +12,9 @@ from . import models
 
 class TestEncryptedField(object):
     def test_deconstruct(self):
-        f = fields.EncryptedTextField(key=models.TEST_KEY)
+        f = fields.EncryptedTextField(key='secret')
 
-        assert f.deconstruct()[3]['keys'] == [models.TEST_KEY]
+        assert f.deconstruct()[3]['keys'] == ['secret']
 
     def test_key_from_settings(self, settings):
         """If no key is provided for a field, use settings.FERNET_KEY."""
@@ -31,12 +31,10 @@ class TestEncryptedField(object):
 
     def test_key_rotation(self):
         """Can supply multiple `keys` for key rotation."""
-        key1 = Fernet.generate_key()
-        key2 = Fernet.generate_key()
-        f = fields.EncryptedTextField(keys=[key1, key2])
+        f = fields.EncryptedTextField(keys=['key1', 'key2'])
 
-        enc1 = Fernet(key1).encrypt(b'enc1')
-        enc2 = Fernet(key2).encrypt(b'enc2')
+        enc1 = Fernet(f.fernet_keys[0]).encrypt(b'enc1')
+        enc2 = Fernet(f.fernet_keys[1]).encrypt(b'enc2')
 
         assert f.fernet.decrypt(enc1) == b'enc1'
         assert f.fernet.decrypt(enc2) == b'enc2'
@@ -44,12 +42,6 @@ class TestEncryptedField(object):
     def test_cannot_supply_both_key_and_keys(self):
         with pytest.raises(ImproperlyConfigured):
             fields.EncryptedTextField(key='foo', keys=['a', 'b'])
-
-    def test_key_conversion(self):
-        """Keys not in Fernet key format converted via sha256hash/b64encode."""
-        f = fields.EncryptedTextField(key='hello')
-
-        assert f.fernet.decrypt(f.fernet.encrypt(b'foo')) == b'foo'
 
 
 @pytest.mark.parametrize(
@@ -69,28 +61,16 @@ class TestEncryptedField(object):
 class TestEncryptedFieldQueries(object):
     def test_insert(self, db, model, vals):
         """Data stored in DB is actually encrypted."""
+        field = model._meta.get_field('value')
         model.objects.create(value=vals[0])
         with connection.cursor() as cur:
             cur.execute('SELECT value FROM %s' % model._meta.db_table)
             data = [
-                models.fernet.decrypt(force_bytes(r[0]))
+                force_text(field.fernet.decrypt(force_bytes(r[0])))
                 for r in cur.fetchall()
             ]
 
-        coerce = {
-            models.EncryptedText: force_text,
-            models.EncryptedChar: force_text,
-            models.EncryptedEmail: force_text,
-            models.EncryptedInt: int,
-            models.EncryptedDate: (
-                lambda s: datetime.strptime(force_text(s), '%Y-%m-%d').date()),
-            models.EncryptedDateTime: (
-                lambda s: datetime.strptime(
-                    force_text(s), '%Y-%m-%d %H:%M:%S')
-            ),
-        }[model]
-
-        assert list(map(coerce, data)) == [vals[0]]
+        assert list(map(field.to_python, data)) == [vals[0]]
 
     def test_insert_and_select(self, db, model, vals):
         """Data round-trips through insert and select."""
