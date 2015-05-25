@@ -51,6 +51,18 @@ class TestEncryptedField(object):
 
         assert fernet.decrypt(f.fernet.encrypt(b'foo')) == b'foo'
 
+    def test_primary_key_not_allowed(self):
+        with pytest.raises(ImproperlyConfigured):
+            fields.EncryptedIntegerField(primary_key=True, key='secret')
+
+    def test_unique_not_allowed(self):
+        with pytest.raises(ImproperlyConfigured):
+            fields.EncryptedIntegerField(unique=True, key='secret')
+
+    def test_db_index_not_allowed(self):
+        with pytest.raises(ImproperlyConfigured):
+            fields.EncryptedIntegerField(db_index=True, key='secret')
+
 
 @pytest.mark.parametrize(
     'model,vals',

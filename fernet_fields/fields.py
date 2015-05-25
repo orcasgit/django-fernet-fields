@@ -28,6 +28,18 @@ class EncryptedFieldMixin(models.Field):
 
     """
     def __init__(self, *args, **kwargs):
+        if kwargs.get('primary_key'):
+            raise ImproperlyConfigured(
+                "EncryptedFieldMixin does not support primary key fields."
+            )
+        if kwargs.get('unique'):
+            raise ImproperlyConfigured(
+                "EncryptedFieldMixin does not support unique fields."
+            )
+        if kwargs.get('db_index'):
+            raise ImproperlyConfigured(
+                "EncryptedFieldMixin does not support indexing fields."
+            )
         key = kwargs.pop('key', None)
         keys = kwargs.pop('keys', None)
         self.raw_keys = kwargs.pop('raw_keys', False)
