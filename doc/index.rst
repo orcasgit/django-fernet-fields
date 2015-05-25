@@ -102,6 +102,13 @@ argument to an encrypted field::
     class MyModel(models.Model):
         name = EncryptedTextField(key='some long and random secret value')
 
+.. warning::
+
+   Once you start saving data using a given encryption key (whether your
+   ``SECRET_KEY`` or another key), don't lose track of that key or you will
+   lose access to all data encrypted using it! And keep the key secret; anyone
+   who gets ahold of it will have access to all your encrypted data.
+
 
 Key rotation
 ~~~~~~~~~~~~
