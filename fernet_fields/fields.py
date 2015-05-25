@@ -20,12 +20,7 @@ __all__ = [
 
 
 class EncryptedFieldMixin(models.Field):
-    """A field mixin to encrypt any field type.
-
-    @@@ TODO:
-    - help with migration from non-encrypted field to encrypted field?
-
-    """
+    """A field mixin to encrypt values using Fernet symmetric encryption."""
     def __init__(self, *args, **kwargs):
         if kwargs.get('primary_key'):
             raise ImproperlyConfigured(

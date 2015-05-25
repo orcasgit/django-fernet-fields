@@ -90,6 +90,20 @@ raise ``django.core.exceptions.ImproperlyConfigured`` if they receive any of
 to ``QuerySet.filter()`` and friends).
 
 
+Migrations
+~~~~~~~~~~
+
+If migrating an existing non-encrypted field to its encrypted counterpart, you
+won't be able to use an ``AlterField`` operation. Since your database has no
+access to the encryption key, it can't update the column values
+correctly. Instead, you'll need to do a three-step migration dance:
+
+1. Add the new encrypted field with a different name.
+2. Write a data migration to copy the values from the old field to the new.
+3. Remove the old field and (if needed) rename the new encrypted field to the
+   old field's name.
+
+
 Keys
 ----
 
