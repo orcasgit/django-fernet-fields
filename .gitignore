@@ -1,0 +1,6 @@
+django_fernet_fields.egg-info/
+htmlcov/
+.tox/
+doc/_build/
+dist/
+.coverage

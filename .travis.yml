@@ -1,0 +1,25 @@
+language: python
+
+env:
+  global:
+    - DJF_USERNAME=postgres
+  # Keep this list up to date using `tox -l`
+  matrix:
+    - TOXENV=py27-django18
+    - TOXENV=py27-djangotrunk
+    - TOXENV=py32-django18
+    - TOXENV=py32-djangotrunk
+    - TOXENV=py33-django18
+    - TOXENV=py33-djangotrunk
+    - TOXENV=py34-django18
+    - TOXENV=py34-djangotrunk
+    - TOXENV=pypy-django18
+    - TOXENV=pypy-djangotrunk
+    - TOXENV=pypy3-django18
+    - TOXENV=pypy3-djangotrunk
+
+install: travis_retry pip install tox coveralls
+
+script: tox -e $TOXENV
+
+after_success: coveralls
