@@ -130,6 +130,8 @@ def test_nullable(db):
     assert found.value is None
 
 
+@pytest.mark.skipif(
+    connection.vendor != 'postgresql', reason="unique only works on PG")
 def test_unique(db):
     """Encrypted field can enforce uniqueness."""
     models.EncryptedUnique.objects.create(value='foo')

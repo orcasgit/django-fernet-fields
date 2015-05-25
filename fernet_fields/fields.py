@@ -1,3 +1,5 @@
+from hashlib import sha256
+
 from cryptography.fernet import Fernet, MultiFernet
 from django.conf import settings
 from django.core.exceptions import FieldError, ImproperlyConfigured
@@ -22,13 +24,10 @@ __all__ = [
 class EncryptedFieldMixin(models.Field):
     """A field mixin to encrypt values using Fernet symmetric encryption."""
     def __init__(self, *args, **kwargs):
+        unique = kwargs.pop('unique', False)
         if kwargs.get('primary_key'):
             raise ImproperlyConfigured(
                 "EncryptedFieldMixin does not support primary_key=True."
-            )
-        if kwargs.get('unique'):
-            raise ImproperlyConfigured(
-                "EncryptedFieldMixin does not support unique=True."
             )
         if kwargs.get('db_index'):
             raise ImproperlyConfigured(
@@ -50,6 +49,9 @@ class EncryptedFieldMixin(models.Field):
                     keys = [settings.SECRET_KEY]
         self.keys = keys
         super(EncryptedFieldMixin, self).__init__(*args, **kwargs)
+        self.prepend_hash = None
+        if unique:
+            self.prepend_hash = 'unique'
 
     @cached_property
     def fernet_keys(self):
@@ -76,15 +78,21 @@ class EncryptedFieldMixin(models.Field):
             EncryptedFieldMixin, self
         ).get_db_prep_value(*args, **kwargs)
         if value is not None:
-            return self.fernet.encrypt(force_bytes(value))
+            value = force_bytes(value)
+            retval = self.fernet.encrypt(value)
+            if self.prepend_hash:
+                retval = sha256(value).digest() + retval
+            return retval
 
     def get_prep_lookup(self, lookup_type, value):
         raise FieldError("Cannot perform lookups against an encrypted field.")
 
     def from_db_value(self, value, expression, connection, context):
         if value is not None:
-            return self.to_python(
-                force_text(self.fernet.decrypt(bytes(value))))
+            value = bytes(value)
+            if self.prepend_hash:
+                value = value[32:]
+            return self.to_python(force_text(self.fernet.decrypt(value)))
 
     def deconstruct(self):
         name, path, args, kwargs = super(
