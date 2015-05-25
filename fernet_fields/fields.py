@@ -4,6 +4,7 @@ from cryptography.fernet import Fernet, MultiFernet
 from django.conf import settings
 from django.core.exceptions import FieldError, ImproperlyConfigured
 from django.db import models
+from django.db.models import lookups
 from django.utils.encoding import force_bytes, force_text
 from django.utils.functional import cached_property
 
@@ -84,11 +85,13 @@ class EncryptedFieldMixin(models.Field):
             return retval
 
     def get_prep_lookup(self, lookup_type, value):
-        if self.prepend_hash and lookup_type == 'exact':
+        if self.prepend_hash and lookup_type in {'exact', 'in'}:
+            if lookup_type == 'in':
+                return [self.get_prep_lookup('exact', v) for v in value]
             return sha256(force_bytes(value)).digest()
         raise FieldError(
-            "Encrypted field only supports exact lookups, "
-            "and only if field has a unique index."
+            "Encrypted field only supports exact and __in lookups, "
+            "and only if field is indexed."
         )
 
     def from_db_value(self, value, expression, connection, context):
@@ -106,17 +109,26 @@ class EncryptedFieldMixin(models.Field):
         return name, path, args, kwargs
 
 
-class HashPrefixExact(models.Lookup):
-    lookup_name = 'exact'
+class HashPrefixLookupMixin(object):
+    def process_lhs(self, compiler, connection):
+        lhs, params = super(
+            HashPrefixLookupMixin, self
+        ).process_lhs(compiler, connection)
+        return 'SUBSTRING(%s for 32)' % lhs, params
 
-    def as_sql(self, compiler, connection):
-        lhs, lhs_params = self.process_lhs(compiler, connection)
-        rhs, rhs_params = self.process_rhs(compiler, connection)
-        params = lhs_params + rhs_params
-        return 'SUBSTRING(%s for 32) = %s' % (lhs, rhs), params
+
+class HashPrefixExact(HashPrefixLookupMixin, lookups.Exact):
+    pass
 
 
 EncryptedFieldMixin.register_lookup(HashPrefixExact)
+
+
+class HashPrefixIn(HashPrefixLookupMixin, lookups.In):
+    pass
+
+
+EncryptedFieldMixin.register_lookup(HashPrefixIn)
 
 
 class EncryptedTextField(EncryptedFieldMixin, models.TextField):

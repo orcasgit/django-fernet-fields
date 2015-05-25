@@ -143,11 +143,19 @@ class TestUniqueEncryptedField(object):
 @pytest.mark.parametrize(
     'model', [models.EncryptedUnique, models.EncryptedIndex])
 class TestIndexedLookups(object):
-    def test_lookup(self, db, model):
+    def test_lookup_exact(self, db, model):
         """Can do an exact lookup on an indexed encrypted field."""
         model.objects.create(value='foo')
         model.objects.create(value='bar')
         found = model.objects.get(value='bar')
+
+        assert found.value == 'bar'
+
+    def test_lookup_in(self, db, model):
+        """Can do an in lookup on an indexed encrypted field."""
+        model.objects.create(value='foo')
+        model.objects.create(value='bar')
+        found = model.objects.get(value__in=['bar'])
 
         assert found.value == 'bar'
 
