@@ -1,7 +1,7 @@
+from cryptography.fernet import Fernet
 from datetime import date, datetime
 
-from django.conf import settings
-from django.core.exceptions import FieldError
+from django.core.exceptions import FieldError, ImproperlyConfigured
 from django.db import connection
 from django.utils.encoding import force_bytes, force_text
 import pytest
@@ -14,18 +14,42 @@ class TestEncryptedField(object):
     def test_deconstruct(self):
         f = fields.EncryptedTextField(key=models.TEST_KEY)
 
-        assert f.deconstruct()[3]['key'] == models.TEST_KEY
+        assert f.deconstruct()[3]['keys'] == [models.TEST_KEY]
 
-    def test_key_from_settings(self):
+    def test_key_from_settings(self, settings):
+        """If no key is provided for a field, use settings.FERNET_KEY."""
+        settings.FERNET_KEY = 'fernet'
         f = fields.EncryptedTextField()
 
-        assert f.key == settings.FERNET_KEY
+        assert f.keys == [settings.FERNET_KEY]
 
-    def test_setting_not_required_if_unused(self, settings):
-        """If all fields have explicit key, no need for FERNET_KEY setting."""
-        del settings.FERNET_KEY
+    def test_fallback_to_secret_key(self, settings):
+        """If no key given and no FERNET_KEY setting, use SECRET_KEY."""
+        f = fields.EncryptedTextField()
 
-        fields.EncryptedTextField(key=models.TEST_KEY)
+        assert f.keys == [settings.SECRET_KEY]
+
+    def test_key_rotation(self):
+        """Can supply multiple `keys` for key rotation."""
+        key1 = Fernet.generate_key()
+        key2 = Fernet.generate_key()
+        f = fields.EncryptedTextField(keys=[key1, key2])
+
+        enc1 = Fernet(key1).encrypt(b'enc1')
+        enc2 = Fernet(key2).encrypt(b'enc2')
+
+        assert f.fernet.decrypt(enc1) == b'enc1'
+        assert f.fernet.decrypt(enc2) == b'enc2'
+
+    def test_cannot_supply_both_key_and_keys(self):
+        with pytest.raises(ImproperlyConfigured):
+            fields.EncryptedTextField(key='foo', keys=['a', 'b'])
+
+    def test_key_conversion(self):
+        """Keys not in Fernet key format converted via sha256hash/b64encode."""
+        f = fields.EncryptedTextField(key='hello')
+
+        assert f.fernet.decrypt(f.fernet.encrypt(b'foo')) == b'foo'
 
 
 @pytest.mark.parametrize(
