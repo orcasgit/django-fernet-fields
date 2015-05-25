@@ -68,7 +68,7 @@ class EncryptedFieldMixin(models.Field):
         return 'bytea'
 
     def get_internal_type(self):
-        """Prevent Django from doing type conversions on encrypted data."""
+        """Prevent Django attempting type conversions on encrypted data."""
         return None
 
     def get_db_prep_value(self, *args, **kwargs):

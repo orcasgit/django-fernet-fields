@@ -1,9 +1,3 @@
-import platform
-
-if platform.python_implementation() == 'PyPy':
-    from psycopg2cffi import compat
-    compat.register()
-
 INSTALLED_APPS = [
     'fernet_fields.test'
 ]
