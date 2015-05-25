@@ -73,7 +73,7 @@ class EncryptedFieldMixin(models.Field):
         """Prevent Django attempting type conversions on encrypted data."""
         return None
 
-    def get_db_prep_value(self, *args, **kwargs):
+    def get_db_prep_save(self, *args, **kwargs):
         value = super(
             EncryptedFieldMixin, self
         ).get_db_prep_value(*args, **kwargs)
@@ -85,7 +85,12 @@ class EncryptedFieldMixin(models.Field):
             return retval
 
     def get_prep_lookup(self, lookup_type, value):
-        raise FieldError("Cannot perform lookups against an encrypted field.")
+        if self.prepend_hash and lookup_type == 'exact':
+            return sha256(force_bytes(value)).digest()
+        raise FieldError(
+            "Encrypted field only supports exact lookups, "
+            "and only if field has a unique index."
+        )
 
     def from_db_value(self, value, expression, connection, context):
         if value is not None:
@@ -100,6 +105,19 @@ class EncryptedFieldMixin(models.Field):
         ).deconstruct()
         kwargs['keys'] = self.keys
         return name, path, args, kwargs
+
+
+class HashPrefixExact(models.Lookup):
+    lookup_name = 'exact'
+
+    def as_sql(self, compiler, connection):
+        lhs, lhs_params = self.process_lhs(compiler, connection)
+        rhs, rhs_params = self.process_rhs(compiler, connection)
+        params = lhs_params + rhs_params
+        return 'SUBSTRING(%s for 32) = %s' % (lhs, rhs), params
+
+
+EncryptedFieldMixin.register_lookup(HashPrefixExact)
 
 
 class EncryptedTextField(EncryptedFieldMixin, models.TextField):

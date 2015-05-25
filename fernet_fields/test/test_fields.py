@@ -132,10 +132,30 @@ def test_nullable(db):
 
 @pytest.mark.skipif(
     connection.vendor != 'postgresql', reason="unique only works on PG")
-def test_unique(db):
-    """Encrypted field can enforce uniqueness."""
-    models.EncryptedUnique.objects.create(value='foo')
-    models.EncryptedUnique.objects.create(value='bar')
-
-    with pytest.raises(IntegrityError):
+class TestUniqueEncryptedField(object):
+    def test_unique(self, db):
+        """Encrypted field can enforce uniqueness."""
         models.EncryptedUnique.objects.create(value='foo')
+        models.EncryptedUnique.objects.create(value='bar')
+
+        with pytest.raises(IntegrityError):
+            models.EncryptedUnique.objects.create(value='foo')
+
+    def test_lookup(self, db):
+        """Can do an exact lookup on a unique encrypted field."""
+        models.EncryptedUnique.objects.create(value='foo')
+        models.EncryptedUnique.objects.create(value='bar')
+        found = models.EncryptedUnique.objects.get(value='bar')
+
+        assert found.value == 'bar'
+
+    def test_lookup_uses_index(self, db):
+        models.EncryptedUnique.objects.create(value='foo')
+        models.EncryptedUnique.objects.create(value='bar')
+        qs = models.EncryptedUnique.objects.filter(value='bar')
+        sql, params = qs.query.sql_with_params()
+        with connection.cursor() as cur:
+            cur.execute('EXPLAIN ' + sql, params)
+            explanation = '\n'.join(r[0] for r in cur.fetchall())
+
+        assert 'Index Scan' in explanation
