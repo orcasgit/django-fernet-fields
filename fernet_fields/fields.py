@@ -1,4 +1,5 @@
 from cryptography.fernet import Fernet
+from django.conf import settings
 from django.core.exceptions import FieldError
 from django.db import models
 from django.utils.encoding import force_bytes, force_text
@@ -9,15 +10,15 @@ class EncryptedFieldMixin(models.Field):
     """A field mixin to encrypt any field type.
 
     @@@ TODO:
-    - prevent lookups
     - handle migration when secret changes?
     - help with migration from non-encrypted field to encrypted field?
-    - default secret key to a setting
     - docs (no lookups)
 
     """
     def __init__(self, *args, **kwargs):
-        self.key = kwargs.pop('key')
+        self.key = kwargs.pop('key', None)
+        if self.key is None:
+            self.key = settings.FERNET_KEY
         super(EncryptedFieldMixin, self).__init__(*args, **kwargs)
 
     @cached_property

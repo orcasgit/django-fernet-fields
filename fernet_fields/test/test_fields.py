@@ -1,5 +1,6 @@
 from datetime import date, datetime
 
+from django.conf import settings
 from django.core.exceptions import FieldError
 from django.db import connection
 from django.utils.encoding import force_bytes, force_text
@@ -11,9 +12,20 @@ from . import models
 
 class TestEncryptedField(object):
     def test_deconstruct(self):
-        f = fields.EncryptedTextField(key='secret')
+        f = fields.EncryptedTextField(key=models.TEST_KEY)
 
-        assert f.deconstruct()[3]['key'] == 'secret'
+        assert f.deconstruct()[3]['key'] == models.TEST_KEY
+
+    def test_key_from_settings(self):
+        f = fields.EncryptedTextField()
+
+        assert f.key == settings.FERNET_KEY
+
+    def test_setting_not_required_if_unused(self, settings):
+        """If all fields have explicit key, no need for FERNET_KEY setting."""
+        del settings.FERNET_KEY
+
+        fields.EncryptedTextField(key=models.TEST_KEY)
 
 
 @pytest.mark.parametrize(
