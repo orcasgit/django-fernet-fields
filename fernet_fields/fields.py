@@ -99,12 +99,6 @@ class EncryptedFieldMixin(models.Field):
                 value = value[32:]
             return self.to_python(force_text(self.fernet.decrypt(value)))
 
-    def deconstruct(self):
-        name, path, args, kwargs = super(
-            EncryptedFieldMixin, self
-        ).deconstruct()
-        return name, path, args, kwargs
-
 
 class HashPrefixLookupMixin(object):
     def process_lhs(self, compiler, connection):

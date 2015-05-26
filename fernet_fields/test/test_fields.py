@@ -11,11 +11,6 @@ from . import models
 
 
 class TestEncryptedField(object):
-    def test_deconstruct(self):
-        f = fields.EncryptedTextField()
-
-        assert f.deconstruct()[3] == {}
-
     def test_key_from_settings(self, settings):
         """If present, use settings.FERNET_KEYS."""
         settings.FERNET_KEYS = ['secret']
