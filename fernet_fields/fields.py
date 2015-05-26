@@ -4,7 +4,6 @@ from cryptography.fernet import Fernet, MultiFernet
 from django.conf import settings
 from django.core.exceptions import FieldError, ImproperlyConfigured
 from django.db import models
-from django.db.models import lookups
 from django.utils.encoding import force_bytes, force_text
 from django.utils.functional import cached_property
 
@@ -29,12 +28,15 @@ class EncryptedFieldMixin(models.Field):
             raise ImproperlyConfigured(
                 "EncryptedFieldMixin does not support primary_key=True."
             )
+        if kwargs.get('unique'):
+            raise ImproperlyConfigured(
+                "EncryptedFieldMixin does not support unique=True."
+            )
+        if kwargs.get('db_index'):
+            raise ImproperlyConfigured(
+                "EncryptedFieldMixin does not support db_index=True."
+            )
         super(EncryptedFieldMixin, self).__init__(*args, **kwargs)
-
-    @cached_property
-    def prepend_hash(self):
-        """Should we prepend hashed value to encrypted values in this field?"""
-        return self.unique or self.db_index
 
     @cached_property
     def keys(self):
@@ -63,71 +65,23 @@ class EncryptedFieldMixin(models.Field):
         """Prevent Django attempting type conversions on encrypted data."""
         return None
 
-    def get_hashed_value(self, value):
-        return sha256(value).digest()
-
     def get_db_prep_save(self, value, connection):
         value = super(
             EncryptedFieldMixin, self
         ).get_db_prep_save(value, connection)
         if value is not None:
-            value = force_bytes(value)
-            retval = self.fernet.encrypt(value)
-            if self.prepend_hash:
-                retval = self.get_hashed_value(value) + retval
+            retval = self.fernet.encrypt(force_bytes(value))
             return connection.Database.Binary(retval)
 
     def get_db_prep_lookup(self, lookup_type, value, connection, *a, **kw):
-        if self.prepend_hash and lookup_type in {'exact', 'in'}:
-            values = super(
-                EncryptedFieldMixin, self
-            ).get_db_prep_lookup(lookup_type, value, connection, *a, **kw)
-            return [
-                connection.Database.Binary(
-                    self.get_hashed_value(force_bytes(v)))
-                for v in values
-            ]
         raise FieldError(
-            "Encrypted field '%s' only supports exact and __in lookups, "
-            "and only if field has db_index=True or unique=True." % self.name
+            "Encrypted field '%s' does not support lookups." % self.name
         )
 
     def from_db_value(self, value, expression, connection, context):
         if value is not None:
             value = bytes(value)
-            if self.prepend_hash:
-                value = value[32:]
             return self.to_python(force_text(self.fernet.decrypt(value)))
-
-
-class HashPrefixLookupMixin(object):
-    def process_lhs(self, compiler, connection):
-        lhs, params = super(
-            HashPrefixLookupMixin, self
-        ).process_lhs(compiler, connection)
-        if connection.vendor == 'postgresql':
-            return 'SUBSTRING(%s for 32)' % lhs, params
-        elif connection.vendor == 'sqlite':
-            return 'SUBSTR(%s, 0, 33)' % lhs, params
-        else:
-            raise ImproperlyConfigured(
-                "Unsupported database vendor (not postgres or sqlite)"
-                ": %s" % connection.vendor
-            )
-
-
-class HashPrefixExact(HashPrefixLookupMixin, lookups.Exact):
-    pass
-
-
-EncryptedFieldMixin.register_lookup(HashPrefixExact)
-
-
-class HashPrefixIn(HashPrefixLookupMixin, lookups.In):
-    pass
-
-
-EncryptedFieldMixin.register_lookup(HashPrefixIn)
 
 
 class EncryptedTextField(EncryptedFieldMixin, models.TextField):

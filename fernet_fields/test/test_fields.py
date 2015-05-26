@@ -2,7 +2,7 @@ from cryptography.fernet import Fernet
 from datetime import date, datetime
 
 from django.core.exceptions import FieldError, ImproperlyConfigured
-from django.db import connection, IntegrityError
+from django.db import connection
 from django.utils.encoding import force_bytes, force_text
 import pytest
 
@@ -45,9 +45,10 @@ class TestEncryptedField(object):
 
         assert fernet.decrypt(f.fernet.encrypt(b'foo')) == b'foo'
 
-    def test_primary_key_not_allowed(self):
+    @pytest.mark.parametrize('key', ['primary_key', 'db_index', 'unique'])
+    def test_not_allowed(self, key):
         with pytest.raises(ImproperlyConfigured):
-            fields.EncryptedIntegerField(primary_key=True)
+            fields.EncryptedIntegerField(**{key: True})
 
 
 @pytest.mark.parametrize(
@@ -107,57 +108,3 @@ def test_nullable(db):
     found = models.EncryptedInt.objects.get()
 
     assert found.value is None
-
-
-@pytest.mark.skipif(
-    connection.vendor != 'postgresql', reason="indexes only work on PG")
-class TestUniqueEncryptedField(object):
-    def test_unique(self, db):
-        """Encrypted field can enforce uniqueness."""
-        models.EncryptedUnique.objects.create(value='foo')
-        models.EncryptedUnique.objects.create(value='bar')
-
-        with pytest.raises(IntegrityError):
-            models.EncryptedUnique.objects.create(value='foo')
-
-
-@pytest.mark.parametrize(
-    'model', [models.EncryptedUnique, models.EncryptedIndex])
-class TestIndexedLookups(object):
-    def test_lookup_exact(self, db, model):
-        """Can do an exact lookup on an indexed encrypted field."""
-        model.objects.create(value='foo')
-        model.objects.create(value='bar')
-        found = model.objects.get(value='bar')
-
-        assert found.value == 'bar'
-
-    def test_lookup_in(self, db, model):
-        """Can do an in lookup on an indexed encrypted field."""
-        model.objects.create(value='foo')
-        model.objects.create(value='bar')
-        found = model.objects.get(value__in=['bar'])
-
-        assert found.value == 'bar'
-
-    @pytest.mark.skipif(
-        connection.vendor != 'postgresql', reason="indexes only work on PG")
-    def test_lookup_uses_index(self, db, model):
-        """Exact lookup on indexed encrypted field uses index."""
-        model.objects.create(value='foo')
-        model.objects.create(value='bar')
-        qs = model.objects.filter(value='bar')
-        sql, params = qs.query.sql_with_params()
-        with connection.cursor() as cur:
-            cur.execute('EXPLAIN ' + sql, params)
-            explanation = '\n'.join(r[0] for r in cur.fetchall())
-
-        assert 'Index Scan' in explanation
-
-
-def test_lookup_unsupported_vendor(db, monkeypatch):
-    models.EncryptedUnique.objects.create(value='bar')
-    monkeypatch.setattr(connection, 'vendor', 'foo')
-
-    with pytest.raises(ImproperlyConfigured):
-        models.EncryptedUnique.objects.get(value='bar')

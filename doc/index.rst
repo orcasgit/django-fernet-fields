@@ -140,9 +140,6 @@ Limitations
 
 .. _indexes-constraints-lookups:
 
-Indexes, constraints and lookups
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 Because Fernet encryption is not deterministic (the same source text encrypted
 using the same key will result in a different encrypted token each time),
 indexing or enforcing uniqueness or performing lookups against encrypted data
@@ -150,84 +147,17 @@ is useless. Every encrypted value will always be different, and every
 exact-match lookup will fail; some other lookup types could appear to succeed,
 but the results would be meaningless.
 
-``django-fernet-fields`` works around this to allow limited lookups (exact and
-``__in`` only) against encrypted fields with ``db_index=True`` or
-``unique=True`` set. It does this by prepending a one-way (SHA256) hash of the
-value onto the encrypted column data, and then performing the lookup only
-against this hashed prefix.
+For this reason, and to avoid unexpected surprises, any encrypted field will
+raise ``django.core.exceptions.ImproperlyConfigured`` if passed any of
+``db_index=True``, ``unique=True``, or ``primary_key=True``, and any type of
+lookup on an encrypted field will raise ``django.core.exceptions.FieldError``.
 
-On PostgreSQL, if you are using the
-``fernet_fields.backends.postgresql_psycopg2`` database backend, this hashed
-prefix is indexed (and uniqueness is enforced on it, if ``unique=True``) so
-these lookups don't require a full table scan.
-
-On SQLite (or PostgreSQL without the custom backend), the lookups are still
-supported, but they are not actually indexed, so performance will degrade with
-table size.
-
-Any other type of lookup on an encrypted field will raise
-``django.core.exceptions.FieldError``.
-
-
-Already using a custom database backend?
-''''''''''''''''''''''''''''''''''''''''
-
-The database backend modifications are wrapped up in a mixin, so if you're
-already using a custom subclass of the built-in PostgreSQL database backend,
-you can still get the benefit of the indexes on encrypted fields.
-
-You'll need to create your own custom backend that inherits both from
-``fernet_fields.backends.mixin.PrefixIndexMixin`` and from the database backend
-you're currently using. To do this, make a Python package (a directory with an
-``__init__.py`` file in it) somewhere in your project, and then put a
-``base.py`` module inside that package. Its contents should look something like
-this::
-
-    from django.db.backends.postgresql_psycopg2 import base
-    from fernet_fields.backends.mixin import PrefixIndexMixin
-
-    class DatabaseWrapper(PrefixIndexMixin, base.DatabaseWrapper):
-        pass
-
-Obviously you'll want to replace ``django.db.backends.postgresql_psycopg2``
-with whatever existing backend you are currently using.
-
-Then set your database ``ENGINE`` (as above) to the Python dotted path to the
-package containing that ``base.py`` module. For example, if you put the above
-code in ``myproject/mybackend/base.py``, your ``ENGINE`` setting would be
-``myproject.mybackend``.
-
-
-Ordering not supported
-~~~~~~~~~~~~~~~~~~~~~~
-
-Ordering a queryset by an encrypted field will appear to work, but it will
-order according to the encrypted data, not the decrypted value, which is not
-very useful and probably not desired.
-
-
-Index/unique-together not supported
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Currently ``index_together`` and ``unique_together`` with an encrypted field
-are not supported; the indexes will be created, but they'll be on the full
-column, so they won't work as expected.
-
-Support for these could in principle be added to the custom database backend's
-schema editor; contributions welcome!
-
-
-Primary keys not supported
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Primary key columns should not be encrypted, and attempting to do so is likely
-to result in unintended effects. For this reason, all encrypted fields will
-raise ``django.core.exceptions.ImproperlyConfigured`` if they receive
-``primary_key=True``.
-
+Similarly, ordering a queryset by an encrypted field will appear to work, but
+it will order according to the encrypted data, not the decrypted value, which
+is not very useful and probably not desired.
 
 Migrations
-~~~~~~~~~~
+----------
 
 If migrating an existing non-encrypted field to its encrypted counterpart, you
 won't be able to use an ``AlterField`` operation. Since your database has no
