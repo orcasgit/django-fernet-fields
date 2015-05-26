@@ -222,6 +222,17 @@ order according to the encrypted data, not the decrypted value, which is not
 very useful and probably not desired.
 
 
+Index/unique-together not supported
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Currently ``index_together`` and ``unique_together`` with an encrypted field
+are not supported; the indexes will be created, but they'll be on the full
+column, so they won't work as expected.
+
+Support for these could in principle be added to the custom database backend's
+schema editor; contributions welcome!
+
+
 Primary keys not supported
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
