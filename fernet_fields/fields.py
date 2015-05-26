@@ -25,8 +25,6 @@ __all__ = [
 class EncryptedFieldMixin(models.Field):
     """A field mixin to encrypt values using Fernet symmetric encryption."""
     def __init__(self, *args, **kwargs):
-        unique = kwargs.pop('unique', False)
-        db_index = kwargs.pop('db_index', False)
         if kwargs.get('primary_key'):
             raise ImproperlyConfigured(
                 "EncryptedFieldMixin does not support primary_key=True."
@@ -48,9 +46,9 @@ class EncryptedFieldMixin(models.Field):
         self.keys = keys
         super(EncryptedFieldMixin, self).__init__(*args, **kwargs)
         self.prepend_hash = None
-        if unique:
+        if self.unique:
             self.prepend_hash = 'unique'
-        elif db_index:
+        elif self.db_index:
             self.prepend_hash = 'index'
 
     @cached_property
@@ -90,8 +88,8 @@ class EncryptedFieldMixin(models.Field):
                 return [self.get_prep_lookup('exact', v) for v in value]
             return sha256(force_bytes(value)).digest()
         raise FieldError(
-            "Encrypted field only supports exact and __in lookups, "
-            "and only if field is indexed."
+            "Encrypted field '%s' only supports exact and __in lookups, "
+            "and only if field has db_index=True or unique=True." % self.name
         )
 
     def from_db_value(self, value, expression, connection, context):
@@ -114,7 +112,15 @@ class HashPrefixLookupMixin(object):
         lhs, params = super(
             HashPrefixLookupMixin, self
         ).process_lhs(compiler, connection)
-        return 'SUBSTRING(%s for 32)' % lhs, params
+        if connection.vendor == 'postgresql':
+            return 'SUBSTRING(%s for 32)' % lhs, params
+        elif connection.vendor == 'sqlite':
+            return 'SUBSTR(%s, 0, 33)' % lhs, params
+        else:
+            raise ImproperlyConfigured(
+                "Unsupported database vendor (not postgres or sqlite)"
+                ": %s" % connection.vendor
+            )
 
 
 class HashPrefixExact(HashPrefixLookupMixin, lookups.Exact):

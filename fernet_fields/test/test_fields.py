@@ -138,8 +138,6 @@ class TestUniqueEncryptedField(object):
             models.EncryptedUnique.objects.create(value='foo')
 
 
-@pytest.mark.skipif(
-    connection.vendor != 'postgresql', reason="indexes only work on PG")
 @pytest.mark.parametrize(
     'model', [models.EncryptedUnique, models.EncryptedIndex])
 class TestIndexedLookups(object):
@@ -159,6 +157,8 @@ class TestIndexedLookups(object):
 
         assert found.value == 'bar'
 
+    @pytest.mark.skipif(
+        connection.vendor != 'postgresql', reason="indexes only work on PG")
     def test_lookup_uses_index(self, db, model):
         """Exact lookup on indexed encrypted field uses index."""
         model.objects.create(value='foo')
@@ -170,3 +170,11 @@ class TestIndexedLookups(object):
             explanation = '\n'.join(r[0] for r in cur.fetchall())
 
         assert 'Index Scan' in explanation
+
+
+def test_lookup_unsupported_vendor(db, monkeypatch):
+    models.EncryptedUnique.objects.create(value='bar')
+    monkeypatch.setattr(connection, 'vendor', 'foo')
+
+    with pytest.raises(ImproperlyConfigured):
+        models.EncryptedUnique.objects.get(value='bar')

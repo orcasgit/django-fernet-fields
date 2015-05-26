@@ -14,8 +14,10 @@ Prerequisites
 ``django-fernet-fields`` supports `Django`_ 1.8.2 and later on Python 2.7, 3.3,
 3.4, pypy, and pypy3.
 
-PostgreSQL and SQLite are currently the only databases with built-in support;
-support for other database backends should be easy to add.
+PostgreSQL is fully supported; SQLite is supported except for indexing and
+unique constraints on encrypted fields. Support for other database backends
+could easily be added (though indexing/unique support is only possible on
+databases that support indexes on expressions).
 
 .. _Django: http://www.djangoproject.com/
 
@@ -28,6 +30,19 @@ Installation
     pip install django-fernet-fields
 
 .. _PyPI: https://pypi.python.org/pypi/django-fernet-fields/
+
+
+Setup
+-----
+
+If you need indexing or unique-constraints on encrypted fields, you'll need to
+use PostgreSQL and the custom database backend: use
+``fernet_fields.backends.postgresql_psycopg`` in place of
+``django.db.backends.postgresql_psycopg2`` for your database ``ENGINE``
+setting. (See `Indexes, constraints, and lookups
+<indexes-constraints-lookups>`_).
+
+Otherwise, no setup is required!
 
 
 Usage
@@ -68,40 +83,6 @@ To create an encrypted version of some other custom field class, use
 
     class MyEncryptedField(EncryptedFieldMixin, MyField):
         pass
-
-
-Caveats
--------
-
-Indexes, constraints and lookups
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Because Fernet encryption is not deterministic (the same source text encrypted
-using the same key will result in a different encrypted token each time),
-indexing or enforcing uniqueness or performing lookups against encrypted
-columns is useless. Every value in the column will always be different, and
-every exact-match lookup will fail; some other lookup types could seem to
-succeed, but the results would be meaningless.
-
-For this reason and to prevent surprising behavior, all encrypted fields will
-raise ``django.core.exceptions.ImproperlyConfigured`` if they receive any of
-``primary_key=True``, ``unique=True``, or ``db_index=True``, and will raise
-``django.core.exceptions.FieldError`` if they are used in a lookup (e.g. a call
-to ``QuerySet.filter()`` and friends).
-
-
-Migrations
-~~~~~~~~~~
-
-If migrating an existing non-encrypted field to its encrypted counterpart, you
-won't be able to use an ``AlterField`` operation. Since your database has no
-access to the encryption key, it can't update the column values
-correctly. Instead, you'll need to do a three-step migration dance:
-
-1. Add the new encrypted field with a different name.
-2. Write a data migration to copy the values from the old field to the new.
-3. Remove the old field and (if needed) rename the new encrypted field to the
-   old field's name.
 
 
 Keys
@@ -168,3 +149,105 @@ keyword argument.
 
 .. _HKDF: https://cryptography.io/en/latest/hazmat/primitives/key-derivation-functions/#cryptography.hazmat.primitives.kdf.hkdf.HKDF
 .. _Fernet.generate_key(): https://cryptography.io/en/latest/fernet/#cryptography.fernet.Fernet.generate_key
+
+
+Limitations
+-----------
+
+.. _indexes-constraints-lookups:
+
+Indexes, constraints and lookups
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Because Fernet encryption is not deterministic (the same source text encrypted
+using the same key will result in a different encrypted token each time),
+indexing or enforcing uniqueness or performing lookups against encrypted data
+is useless. Every encrypted value will always be different, and every
+exact-match lookup will fail; some other lookup types could appear to succeed,
+but the results would be meaningless.
+
+``django-fernet-fields`` works around this to allow limited lookups (exact and
+``__in`` only) against encrypted fields with ``db_index=True`` or
+``unique=True`` set. It does this by prepending a one-way (SHA256) hash of the
+value onto the encrypted column data, and then performing the lookup only
+against this hashed prefix.
+
+On PostgreSQL, if you are using the
+``fernet_fields.backends.postgresql_psycopg2`` database backend, this hashed
+prefix is indexed (and uniqueness is enforced on it, if ``unique=True``) so
+these lookups don't require a full table scan.
+
+On SQLite (or PostgreSQL without the custom backend), the lookups are still
+supported, but they are not actually indexed, so performance will degrade with
+table size.
+
+Any other type of lookup on an encrypted field will raise
+``django.core.exceptions.FieldError``.
+
+
+Already using a custom database backend?
+''''''''''''''''''''''''''''''''''''''''
+
+The database backend modifications are wrapped up in a mixin, so if you're
+already using a custom subclass of the built-in PostgreSQL database backend,
+you can still get the benefit of the indexes on encrypted fields.
+
+You'll need to create your own custom backend that inherits both from
+``fernet_fields.backends.mixin.PrefixIndexMixin`` and from the database backend
+you're currently using. To do this, make a Python package (a directory with an
+``__init__.py`` file in it) somewhere in your project, and then put a
+``base.py`` module inside that package. Its contents should look something like
+this::
+
+    from django.db.backends.postgresql_psycopg2 import base
+    from fernet_fields.backends.mixin import PrefixIndexMixin
+
+    class DatabaseWrapper(PrefixIndexMixin, base.DatabaseWrapper):
+        pass
+
+Obviously you'll want to replace ``django.db.backends.postgresql_psycopg2``
+with whatever existing backend you are currently using.
+
+Then set your database ``ENGINE`` (as above) to the Python dotted path to the
+package containing that ``base.py`` module. For example, if you put the above
+code in ``myproject/mybackend/base.py``, your ``ENGINE`` setting would be
+``myproject.mybackend``.
+
+
+Ordering not supported
+~~~~~~~~~~~~~~~~~~~~~~
+
+Ordering a queryset by an encrypted field will appear to work, but it will
+order according to the encrypted data, not the decrypted value, which is not
+very useful and probably not desired.
+
+
+Primary keys not supported
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Primary key columns should not be encrypted, and attempting to do so is likely
+to result in unintended effects. For this reason, all encrypted fields will
+raise ``django.core.exceptions.ImproperlyConfigured`` if they receive
+``primary_key=True``.
+
+
+Migrations
+~~~~~~~~~~
+
+If migrating an existing non-encrypted field to its encrypted counterpart, you
+won't be able to use an ``AlterField`` operation. Since your database has no
+access to the encryption key, it can't update the column values
+correctly. Instead, you'll need to do a three-step migration dance:
+
+1. Add the new encrypted field with a different name.
+2. Write a data migration to copy the values from the old field to the new.
+3. Remove the old field and (if needed) rename the new encrypted field to the
+   old field's name.
+
+
+Contributing
+------------
+
+See the `contributing docs`_.
+
+.. _contributing docs: https://github.com/orcasgit/django-fernet-fields/blob/master/CONTRIBUTING.rst

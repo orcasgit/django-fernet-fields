@@ -15,15 +15,19 @@ django-fernet-fields
    :target: https://pypi.python.org/pypi/django-fernet-fields
    :alt: License
 
-Django model fields whose value is transparently encrypted using the `Fernet
-recipe`_ from the `cryptography`_ library.
+`Fernet`_ symmetric encryption for Django model fields, using the
+`cryptography`_ library.
 
 ``django-fernet-fields`` supports `Django`_ 1.8.2 and later on Python 2.7, 3.3,
-3.4, pypy, and pypy3. Currently PostgreSQL and SQLite are the only supported
-databases, but support for other backends could easily be added.
+3.4, pypy, and pypy3.
+
+PostgreSQL is fully supported; SQLite is supported except for indexing and
+unique constraints on encrypted fields. Support for other database backends
+could easily be added (though indexing support is only possible on databases
+that support indexes on expressions).
 
 .. _Django: http://www.djangoproject.com/
-.. _Fernet recipe: https://cryptography.io/en/latest/fernet/
+.. _Fernet: https://cryptography.io/en/latest/fernet/
 .. _cryptography: https://cryptography.io/en/latest/
 
 
