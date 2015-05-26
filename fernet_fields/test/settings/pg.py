@@ -9,7 +9,7 @@ if platform.python_implementation() == 'PyPy':
 
 DATABASES = {
     'default': {
-        'ENGINE': 'fernet_fields.backends.postgresql_psycopg2',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': 'djftest',
         'TEST': {
             'NAME': 'djftest',
