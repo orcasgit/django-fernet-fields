@@ -240,7 +240,8 @@ access to the encryption key, it can't update the column values
 correctly. Instead, you'll need to do a three-step migration dance:
 
 1. Add the new encrypted field with a different name.
-2. Write a data migration to copy the values from the old field to the new.
+2. Write a data migration (using RunPython and the ORM, not raw SQL) to copy
+   the values from the old field to the new (encrypting them in the process).
 3. Remove the old field and (if needed) rename the new encrypted field to the
    old field's name.
 
