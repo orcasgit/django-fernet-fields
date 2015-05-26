@@ -95,7 +95,9 @@ class DatabaseSchemaEditor(base.DatabaseSchemaEditor):
         new_idx = self._prehash(new_field)
         idx_changed = (old_idx != new_idx)
         if old_idx and idx_changed:
-            self.execute(self._delete_prefix_index_sql(model, old_field))
+            delete_sql = self._delete_prefix_index_sql(model, old_field)
+            if delete_sql:
+                self.execute(delete_sql)
         if new_idx == 'unique' and idx_changed:
             self.execute(self._prefix_index_sql(model, new_field))
 
