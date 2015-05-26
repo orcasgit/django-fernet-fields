@@ -41,7 +41,8 @@ class DatabaseSchemaEditor(base.DatabaseSchemaEditor):
     sql_column_prefix = '"substring"(%s, 1, 32)'
 
     def _prehash(self, field):
-        return getattr(field, 'prepend_hash', None)
+        if getattr(field, 'prepend_hash', False):
+            return 'unique' if field.unique else 'index'
 
     @contextmanager
     def _pretend_not(self, field, attr):
@@ -106,12 +107,11 @@ class DatabaseSchemaEditor(base.DatabaseSchemaEditor):
 
     def _prefix_index_sql(self, model, field):
         table = model._meta.db_table
-        unique = field.prepend_hash == 'unique'
         expr = self.sql_column_prefix % field.column
-        suffix = '_prehash_uniq' if unique else '_prehash'
+        suffix = '_prehash_uniq' if field.unique else '_prehash'
         template = (
             self.sql_create_unique_index
-            if unique
+            if field.unique
             else self.sql_create_index
         )
         sql = template % {

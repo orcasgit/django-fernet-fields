@@ -91,11 +91,17 @@ Keys
 By default, ``django-fernet-fields`` uses your ``SECRET_KEY`` setting as the
 encryption key.
 
-You can specify a different key per encrypted field by passing the ``key``
-argument to an encrypted field::
+You can instead provide a list of keys in the ``FERNET_KEYS`` setting; the
+first key will be used to encrypt all new data, and decryption of existing
+values will be attempted with all given keys in order. This is useful for key
+rotation: place a new key at the head of the list for use with all new or
+changed data, but existing values encrypted with old keys will still be
+accessible::
 
-    class MyModel(models.Model):
-        name = EncryptedTextField(key='some long and random secret value')
+    FERNET_KEYS = [
+        'new key for encrypting',
+        'older key for decrypting old data',
+    ]
 
 .. warning::
 
@@ -103,24 +109,6 @@ argument to an encrypted field::
    ``SECRET_KEY`` or another key), don't lose track of that key or you will
    lose access to all data encrypted using it! And keep the key secret; anyone
    who gets ahold of it will have access to all your encrypted data.
-
-
-Key rotation
-~~~~~~~~~~~~
-
-You can instead provide a list of keys using the ``keys`` argument; the first
-key will be used to encrypt all new data, and decryption of existing values
-will be attempted with all given keys in order. This is useful for key
-rotation: place a new key at the head of the list for use with all new or
-changed data, but existing values encrypted with old keys will still be
-accessible::
-
-    class MyModel(models.Model):
-        name = EncryptedTextField(keys=['new key', 'older key'])
-
-You can also set the ``FERNET_KEYS`` setting to a list of keys, which will be
-used as the default for any encrypted field that does not receive a ``key`` or
-``keys`` argument.
 
 
 Disabling HKDF
@@ -139,13 +127,9 @@ correct format, you'll likely get "incorrect padding" errors.
 
 .. warning::
 
-   If you don't define a ``FERNET_KEYS`` setting or pass key(s) explicitly to
-   every encrypted field, your ``SECRET_KEY`` setting is the fallback key. If
-   you disable HKDF, this means that your ``SECRET_KEY`` itself needs to be a
-   Fernet-compatible key.
-
-You can also disable HKDF per-encrypted-field by passing the ``use_hkdf=False``
-keyword argument.
+   If you don't define a ``FERNET_KEYS`` setting, your ``SECRET_KEY`` setting
+   is the fallback key. If you disable HKDF, this means that your
+   ``SECRET_KEY`` itself needs to be a Fernet-compatible key.
 
 .. _HKDF: https://cryptography.io/en/latest/hazmat/primitives/key-derivation-functions/#cryptography.hazmat.primitives.kdf.hkdf.HKDF
 .. _Fernet.generate_key(): https://cryptography.io/en/latest/fernet/#cryptography.fernet.Fernet.generate_key

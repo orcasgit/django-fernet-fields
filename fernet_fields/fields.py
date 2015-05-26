@@ -29,31 +29,23 @@ class EncryptedFieldMixin(models.Field):
             raise ImproperlyConfigured(
                 "EncryptedFieldMixin does not support primary_key=True."
             )
-        key = kwargs.pop('key', None)
-        keys = kwargs.pop('keys', None)
-        self.use_hkdf = kwargs.pop(
-            'use_hkdf', getattr(settings, 'FERNET_USE_HKDF', True))
-        if (key is not None) and (keys is not None):
-            raise ImproperlyConfigured(
-                "Cannot pass both `key` and `keys` to encrypted field.")
-        if keys is None:
-            if key is not None:
-                keys = [key]
-            else:
-                keys = getattr(settings, 'FERNET_KEYS', None)
-                if keys is None:
-                    keys = [settings.SECRET_KEY]
-        self.keys = keys
         super(EncryptedFieldMixin, self).__init__(*args, **kwargs)
-        self.prepend_hash = None
-        if self.unique:
-            self.prepend_hash = 'unique'
-        elif self.db_index:
-            self.prepend_hash = 'index'
+
+    @cached_property
+    def prepend_hash(self):
+        """Should we prepend hashed value to encrypted values in this field?"""
+        return self.unique or self.db_index
+
+    @cached_property
+    def keys(self):
+        keys = getattr(settings, 'FERNET_KEYS', None)
+        if keys is None:
+            keys = [settings.SECRET_KEY]
+        return keys
 
     @cached_property
     def fernet_keys(self):
-        if self.use_hkdf:
+        if getattr(settings, 'FERNET_USE_HKDF', True):
             return [hkdf.derive_fernet_key(k) for k in self.keys]
         return self.keys
 
@@ -111,7 +103,6 @@ class EncryptedFieldMixin(models.Field):
         name, path, args, kwargs = super(
             EncryptedFieldMixin, self
         ).deconstruct()
-        kwargs['keys'] = self.keys
         return name, path, args, kwargs
 
 
