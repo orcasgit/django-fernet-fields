@@ -1,5 +1,3 @@
-from hashlib import sha256
-
 from cryptography.fernet import Fernet, MultiFernet
 from django.conf import settings
 from django.core.exceptions import FieldError, ImproperlyConfigured
