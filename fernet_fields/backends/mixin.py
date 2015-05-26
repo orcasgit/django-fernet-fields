@@ -3,30 +3,10 @@ from contextlib import contextmanager
 
 from django.db.backends.postgresql_psycopg2 import base
 
+from .utils import tempsetattr, noop
+
 
 Index = namedtuple('Index', 'name, columns, unique, pk')
-
-
-unset = object()
-
-
-@contextmanager
-def tempsetattr(obj, attr, val):
-    """Context manager to set an attribute on an object and restore it."""
-    orig = getattr(obj, attr, unset)
-    setattr(obj, attr, val)
-    try:
-        yield
-    finally:
-        if orig is unset:
-            delattr(obj, attr)
-        else:
-            setattr(obj, attr, orig)
-
-
-@contextmanager
-def noop(*args):
-    yield
 
 
 class DatabaseSchemaEditor(base.DatabaseSchemaEditor):

@@ -3,7 +3,6 @@ from django.db import connection, models
 import pytest
 
 import fernet_fields as fields
-from fernet_fields.backends.mixin import tempsetattr
 
 
 app_registry = Apps()
@@ -35,17 +34,6 @@ def Person(request):
             jobs = models.IntegerField(db_index=True)
 
     return Person
-
-
-def test_tempsetattr_nonexistent():
-    class Empty(object):
-        pass
-
-    obj = Empty()
-    with tempsetattr(obj, 'foo', 'bar'):
-        assert obj.foo == 'bar'
-
-    assert not hasattr(obj, 'foo')
 
 
 @pytest.mark.skipif(
