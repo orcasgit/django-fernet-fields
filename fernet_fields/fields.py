@@ -71,22 +71,30 @@ class EncryptedFieldMixin(models.Field):
         """Prevent Django attempting type conversions on encrypted data."""
         return None
 
-    def get_db_prep_save(self, *args, **kwargs):
+    def get_hashed_value(self, value):
+        return sha256(value).digest()
+
+    def get_db_prep_save(self, value, connection):
         value = super(
             EncryptedFieldMixin, self
-        ).get_db_prep_value(*args, **kwargs)
+        ).get_db_prep_save(value, connection)
         if value is not None:
             value = force_bytes(value)
             retval = self.fernet.encrypt(value)
             if self.prepend_hash:
-                retval = sha256(value).digest() + retval
-            return retval
+                retval = self.get_hashed_value(value) + retval
+            return connection.Database.Binary(retval)
 
-    def get_prep_lookup(self, lookup_type, value):
+    def get_db_prep_lookup(self, lookup_type, value, connection, *a, **kw):
         if self.prepend_hash and lookup_type in {'exact', 'in'}:
-            if lookup_type == 'in':
-                return [self.get_prep_lookup('exact', v) for v in value]
-            return sha256(force_bytes(value)).digest()
+            values = super(
+                EncryptedFieldMixin, self
+            ).get_db_prep_lookup(lookup_type, value, connection, *a, **kw)
+            return [
+                connection.Database.Binary(
+                    self.get_hashed_value(force_bytes(v)))
+                for v in values
+            ]
         raise FieldError(
             "Encrypted field '%s' only supports exact and __in lookups, "
             "and only if field has db_index=True or unique=True." % self.name
