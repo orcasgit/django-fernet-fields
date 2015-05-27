@@ -13,6 +13,8 @@ __all__ = [
 
 class DualQuerySet(models.QuerySet):
     def update(self, **kwargs):
+        # Ensure that an update to a DualField updates its associated
+        # EncryptedField, too.
         for fn, encrypted_fn in six.iteritems(self._dualfields):
             if fn in kwargs:
                 kwargs[encrypted_fn] = kwargs[fn]
@@ -20,13 +22,13 @@ class DualQuerySet(models.QuerySet):
 
     @cached_property
     def _dualfields(self):
+        """Return a mapping of dualfield-name -> encryptedfield-name."""
         dualfields = getattr(self.model, '_dualfields_cache', None)
         if dualfields is None:
             dualfields = {}
             for field in self.model._meta.get_fields():
                 if isinstance(field, fields.DualField):
-                    encrypted_field_name = field.populate_from_field.attname
-                    dualfields[field.attname] = encrypted_field_name
+                    dualfields[field.attname] = field.encrypted_field.attname
             self.model._dualfields_cache = dualfields
         return dualfields
 
