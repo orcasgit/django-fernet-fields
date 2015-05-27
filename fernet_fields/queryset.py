@@ -5,6 +5,13 @@ from django.utils.functional import cached_property
 from . import fields
 
 
+__all__ = [
+    'DualQuerySet',
+    'DualManager',
+    'DualModel',
+]
+
+
 class DualQuerySet(models.QuerySet):
     def update(self, **kwargs):
         for fn, encrypted_fn in six.iteritems(self._dualfields):
@@ -23,3 +30,13 @@ class DualQuerySet(models.QuerySet):
                     dualfields[field.attname] = encrypted_field_name
             self.model._dualfields_cache = dualfields
         return dualfields
+
+
+DualManager = models.Manager.from_queryset(DualQuerySet)
+
+
+class DualModel(models.Model):
+    class Meta:
+        abstract = True
+
+    objects = DualManager()

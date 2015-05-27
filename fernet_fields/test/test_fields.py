@@ -129,14 +129,14 @@ def test_unique(db, model):
     'model,vals',
     [
         (models.DualText, ['foo', 'bar']),
-        # (models.DualChar, ['one', 'two']),
-        # (models.DualEmail, ['a@example.com', 'b@example.com']),
-        # (models.DualInt, [1, 2]),
-        # (models.DualDate, [date(2015, 2, 5), date(2015, 2, 8)]),
-        # (
-        #     models.DualDateTime,
-        #     [datetime(2015, 2, 5, 15), datetime(2015, 2, 8, 16)],
-        # ),
+        (models.DualChar, ['one', 'two']),
+        (models.DualEmail, ['a@example.com', 'b@example.com']),
+        (models.DualInt, [1, 2]),
+        (models.DualDate, [date(2015, 2, 5), date(2015, 2, 8)]),
+        (
+            models.DualDateTime,
+            [datetime(2015, 2, 5, 15), datetime(2015, 2, 8, 16)],
+        ),
     ],
 )
 class TestDualFieldQueries(object):

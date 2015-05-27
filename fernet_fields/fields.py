@@ -20,6 +20,11 @@ __all__ = [
     'EncryptedDateTimeField',
     'DualField',
     'DualTextField',
+    'DualCharField',
+    'DualEmailField',
+    'DualIntegerField',
+    'DualDateField',
+    'DualDateTimeField',
 ]
 
 
@@ -136,9 +141,6 @@ class DualField(models.Field):
         descriptor = DualFieldDescriptor(self.populate_from_field.attname)
         setattr(cls, name, descriptor)
 
-    def from_db_value(self, value, expression, connection, context):
-        return NO_VALUE
-
     def get_internal_type(self):
         return 'BinaryField'
 
@@ -163,6 +165,29 @@ class DualField(models.Field):
             )
         return super(DualField, self).get_prep_lookup(lookup_type, value)
 
+    def from_db_value(self, value, expression, connection, context):
+        return NO_VALUE
+
 
 class DualTextField(DualField, models.TextField):
     encrypted_field_class = EncryptedTextField
+
+
+class DualCharField(DualField, models.CharField):
+    encrypted_field_class = EncryptedCharField
+
+
+class DualEmailField(DualField, models.EmailField):
+    encrypted_field_class = EncryptedEmailField
+
+
+class DualIntegerField(DualField, models.IntegerField):
+    encrypted_field_class = EncryptedIntegerField
+
+
+class DualDateField(DualField, models.DateField):
+    encrypted_field_class = EncryptedDateField
+
+
+class DualDateTimeField(DualField, models.DateTimeField):
+    encrypted_field_class = EncryptedDateTimeField

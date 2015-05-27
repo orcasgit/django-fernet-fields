@@ -31,10 +31,28 @@ class EncryptedNullable(models.Model):
     value = fields.EncryptedIntegerField(null=True)
 
 
-class DualText(models.Model):
+class DualText(fields.DualModel):
     value = fields.DualTextField()
 
-    objects = models.Manager.from_queryset(fields.DualQuerySet)()
+
+class DualChar(fields.DualModel):
+    value = fields.DualCharField(max_length=25)
+
+
+class DualEmail(fields.DualModel):
+    value = fields.DualEmailField()
+
+
+class DualInt(fields.DualModel):
+    value = fields.DualIntegerField()
+
+
+class DualDate(fields.DualModel):
+    value = fields.DualDateField()
+
+
+class DualDateTime(fields.DualModel):
+    value = fields.DualDateTimeField()
 
 
 class DualUnique(models.Model):

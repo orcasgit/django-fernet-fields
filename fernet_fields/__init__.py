@@ -1,4 +1,4 @@
 from .fields import *  # noqa
-from .queryset import DualQuerySet
+from .queryset import *  # noqa
 
 __version__ = '0.1'
