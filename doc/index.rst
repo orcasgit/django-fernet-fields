@@ -181,8 +181,14 @@ Encryption keys are handled in the same way as for ``EncryptedField``.
    attacker can now see which rows have the same values and which have
    different values (which an ``EncryptedField`` alone would not expose).
 
-   For this reason (and for simplicity of implementation) I recommend using
-   ``EncryptedField`` whenever possible, and only using ``DualField`` when you
+   Also, because a SHA-256 hash can be computed quickly and no random salt is
+   used (using one would eliminate the lookup and indexability benefits), an
+   attacker with long-term access to your database and sufficient computing
+   power available may be able to brute-force guess the hashed values,
+   especially if they are short or easily guessable.
+
+   For these reasons (and for simplicity of implementation) use
+   ``EncryptedField`` whenever possible, and only use ``DualField`` when you
    absolutely need lookups and/or a database-level unique constraint on an
    encrypted field.
 
