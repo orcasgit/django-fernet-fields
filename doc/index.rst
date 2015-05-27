@@ -106,9 +106,9 @@ whatever arbitrary secret key you provide.
 If you wish to disable HKDF and provide your own Fernet-compatible 32-bit
 key(s) (e.g. generated with `Fernet.generate_key()`_) directly instead, just
 set ``FERNET_USE_HKDF = False`` in your settings file. If this is set, all keys
-passed to encrypted fields directly or specified in the ``FERNET_KEYS`` setting
-must be 32-bit and url-safe base64-encoded bytestrings. If a key is not in the
-correct format, you'll likely get "incorrect padding" errors.
+specified in the ``FERNET_KEYS`` setting must be 32-bit and url-safe
+base64-encoded bytestrings. If a key is not in the correct format, you'll
+likely get "incorrect padding" errors.
 
 .. warning::
 
