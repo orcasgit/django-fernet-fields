@@ -193,3 +193,9 @@ class TestDualFieldQueries(object):
         found = model.objects.get(value__in=[vals[0]])
 
         assert found.value == vals[0]
+
+    def test_other_lookups_raise_field_error(self, db, model, vals):
+        model.objects.create(value=vals[0])
+
+        with pytest.raises(FieldError):
+            model.objects.get(value__gte=vals[0])
