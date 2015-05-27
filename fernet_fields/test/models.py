@@ -4,7 +4,7 @@ from fernet_fields import fields
 
 
 class EncryptedText(models.Model):
-    value = fields.EncryptedTextField(default='hey')
+    value = fields.EncryptedTextField()
 
 
 class EncryptedChar(models.Model):
@@ -16,7 +16,7 @@ class EncryptedEmail(models.Model):
 
 
 class EncryptedInt(models.Model):
-    value = fields.EncryptedIntegerField(null=True)
+    value = fields.EncryptedIntegerField()
 
 
 class EncryptedDate(models.Model):
@@ -27,14 +27,8 @@ class EncryptedDateTime(models.Model):
     value = fields.EncryptedDateTimeField()
 
 
-class UniqueHash(models.Model):
-    value = fields.EncryptedTextField()
-    hashed = fields.HashField('value', unique=True)
-
-
-class NullableHash(models.Model):
-    value = fields.EncryptedTextField(null=True)
-    hashed = fields.HashField('value', null=True)
+class EncryptedNullable(models.Model):
+    value = fields.EncryptedIntegerField(null=True)
 
 
 class DualText(models.Model):

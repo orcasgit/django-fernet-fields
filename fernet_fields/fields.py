@@ -108,53 +108,6 @@ class EncryptedDateTimeField(EncryptedField, models.DateTimeField):
     pass
 
 
-class HashFieldBase(models.Field):
-    """Base class for auto-populating hash fields.
-
-    Subclass must provide a ``populate_from_field`` attribute or property.
-
-    """
-
-    def db_type(self, connection):
-        # PostgreSQL and SQLite both support the BYTEA type.
-        return 'bytea'
-
-    def get_internal_type(self):
-        """Prevent Django attempting type conversions on hashed data."""
-        return None
-
-    def _hash_value(self, val):
-        return sha256(force_bytes(val)).digest()
-
-    def get_db_prep_value(self, value, connection, *a, **kw):
-        value = super(
-            HashFieldBase, self
-        ).get_db_prep_value(value, connection, *a, **kw)
-        if value is not None:
-            return connection.Database.Binary(self._hash_value(value))
-
-    def pre_save(self, instance, add):
-        return self.populate_from_field.value_from_object(instance)
-
-    def get_prep_lookup(self, lookup_type, value):
-        if lookup_type not in {'exact', 'in', 'isnull'}:
-            raise FieldError(
-                "HashField '%s' supports only exact, in, and isnull lookups."
-                % self.name
-            )
-        return super(HashFieldBase, self).get_prep_lookup(lookup_type, value)
-
-
-class HashField(HashFieldBase):
-    def __init__(self, populate_from, *args, **kwargs):
-        self.populate_from = populate_from
-        super(HashField, self).__init__(*args, **kwargs)
-
-    @cached_property
-    def populate_from_field(self):
-        return self.model._meta.get_field(self.populate_from)
-
-
 NO_VALUE = object()
 
 
@@ -170,7 +123,7 @@ class DualFieldDescriptor(object):
             return setattr(obj, self.encrypted_field_attname, value)
 
 
-class DualField(HashFieldBase):
+class DualField(models.Field):
     encrypted_field_class = EncryptedField
 
     def __init__(self, *args, **kwargs):
@@ -188,6 +141,35 @@ class DualField(HashFieldBase):
 
     def from_db_value(self, value, expression, connection, context):
         return NO_VALUE
+
+    def db_type(self, connection):
+        # PostgreSQL and SQLite both support the BYTEA type.
+        return 'bytea'
+
+    def get_internal_type(self):
+        """Prevent Django attempting type conversions on hashed data."""
+        return None
+
+    def _hash_value(self, val):
+        return sha256(force_bytes(val)).digest()
+
+    def get_db_prep_value(self, value, connection, *a, **kw):
+        value = super(
+            DualField, self
+        ).get_db_prep_value(value, connection, *a, **kw)
+        if value is not None:
+            return connection.Database.Binary(self._hash_value(value))
+
+    def pre_save(self, instance, add):
+        return self.populate_from_field.value_from_object(instance)
+
+    def get_prep_lookup(self, lookup_type, value):
+        if lookup_type not in {'exact', 'in', 'isnull'}:
+            raise FieldError(
+                "DualField '%s' supports only exact, in, and isnull lookups."
+                % self.name
+            )
+        return super(DualField, self).get_prep_lookup(lookup_type, value)
 
 
 class DualTextField(DualField, models.TextField):
