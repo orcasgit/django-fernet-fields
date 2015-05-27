@@ -57,8 +57,7 @@ Field types
 Several other field classes are included: ``EncryptedCharField``,
 ``EncryptedEmailField``, ``EncryptedIntegerField``, ``EncryptedDateField``, and
 ``EncryptedDateTimeField``. All field classes accept the same arguments as
-their non-encrypted versions (in addition to the optional encryption-specific
-keyword arguments discussed below).
+their non-encrypted versions.
 
 To create an encrypted version of some other custom field class, inherit from
 both ``EncryptedField`` and the other field class::
