@@ -1,6 +1,5 @@
 from cryptography.fernet import Fernet
 from datetime import date, datetime
-from hashlib import sha256
 
 from django.core.exceptions import FieldError, ImproperlyConfigured
 from django.db import connection, IntegrityError
