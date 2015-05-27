@@ -14,10 +14,8 @@ Prerequisites
 ``django-fernet-fields`` supports `Django`_ 1.8.2 and later on Python 2.7, 3.3,
 3.4, pypy, and pypy3.
 
-PostgreSQL is fully supported; SQLite is supported except for indexing and
-unique constraints on encrypted fields. Support for other database backends
-could easily be added (though indexing/unique support is only possible on
-databases that support indexes on expressions).
+Only PostgreSQL, SQLite, and MySQL are tested, but any Django database backend
+with support for ``BinaryField`` should work.
 
 .. _Django: http://www.djangoproject.com/
 

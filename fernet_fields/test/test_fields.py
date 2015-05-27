@@ -154,10 +154,10 @@ class TestDualFieldQueries(object):
             for row in cur.fetchall():
                 values.append(
                     force_text(enc_field.fernet.decrypt(force_bytes(row[1]))))
-                hashes.append(row[0])
+                hashes.append(force_bytes(row[0]))
 
         assert list(map(field.to_python, values)) == [vals[0]]
-        assert hashes == [sha256(force_bytes(vals[0])).digest()]
+        assert hashes == [field._hash_value(vals[0])]
 
     def test_insert_and_select(self, db, model, vals):
         """Data round-trips through insert and select."""

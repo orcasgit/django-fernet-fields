@@ -57,13 +57,8 @@ class EncryptedField(models.Field):
             return Fernet(self.fernet_keys[0])
         return MultiFernet([Fernet(k) for k in self.fernet_keys])
 
-    def db_type(self, connection):
-        # PostgreSQL and SQLite both support the BYTEA type.
-        return 'bytea'
-
     def get_internal_type(self):
-        """Prevent Django attempting type conversions on encrypted data."""
-        return None
+        return 'BinaryField'
 
     def get_db_prep_save(self, value, connection):
         value = super(
@@ -142,13 +137,8 @@ class DualField(models.Field):
     def from_db_value(self, value, expression, connection, context):
         return NO_VALUE
 
-    def db_type(self, connection):
-        # PostgreSQL and SQLite both support the BYTEA type.
-        return 'bytea'
-
     def get_internal_type(self):
-        """Prevent Django attempting type conversions on hashed data."""
-        return None
+        return 'BinaryField'
 
     def _hash_value(self, val):
         return sha256(force_bytes(val)).digest()
