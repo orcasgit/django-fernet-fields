@@ -129,6 +129,10 @@ class DualField(models.Field):
     encrypted_field_class = EncryptedField
 
     def __init__(self, *args, **kwargs):
+        if kwargs.get('primary_key'):
+            raise ImproperlyConfigured(
+                "DualField does not support primary_key=True."
+            )
         self.populate_from_field = self.encrypted_field_class(editable=False)
         super(DualField, self).__init__(*args, **kwargs)
         if self.null:

@@ -30,19 +30,6 @@ Installation
 .. _PyPI: https://pypi.python.org/pypi/django-fernet-fields/
 
 
-Setup
------
-
-If you need indexing or unique-constraints on encrypted fields, you'll need to
-use PostgreSQL and the custom database backend: use
-``fernet_fields.backends.postgresql_psycopg`` in place of
-``django.db.backends.postgresql_psycopg2`` for your database ``ENGINE``
-setting. (See `Indexes, constraints, and lookups
-<indexes-constraints-lookups>`_).
-
-Otherwise, no setup is required!
-
-
 Usage
 -----
 
@@ -133,10 +120,8 @@ correct format, you'll likely get "incorrect padding" errors.
 .. _Fernet.generate_key(): https://cryptography.io/en/latest/fernet/#cryptography.fernet.Fernet.generate_key
 
 
-Limitations
------------
-
-.. _indexes-constraints-lookups:
+Indexes, constraints, and lookups
+---------------------------------
 
 Because Fernet encryption is not deterministic (the same source text encrypted
 using the same key will result in a different encrypted token each time),
@@ -151,27 +136,129 @@ raise ``django.core.exceptions.ImproperlyConfigured`` if passed any of
 lookup on an ``EncryptedField`` will raise
 ``django.core.exceptions.FieldError``.
 
+If you need to allow indexes and exact-match lookups against encrypted fields,
+use a ``DualField`` instead:
+
+
+DualField
+---------
+
+In order to allow exact-match lookups and indexing (including unique
+constraints) of encrypted fields, a ``DualField`` stores two columns in the
+database: one with a SHA-256 hash of the source value, and one with the
+Fernet-encrypted value.
+
+The SHA-256 hash is not reversible (that is, the original value can't be
+recovered from the hash), but it is deterministic (the same source value will
+always have the same hash), so it can be used for indexing, unique constraints,
+and lookups.
+
+The Fernet-encrypted value is used only to recover the original data when
+querying the database.
+
+The same six ``DualField`` subclasses are included: ``DualTextField``,
+``DualCharField``, ``DualEmailField``, ``DualIntegerField``, ``DualDateField``,
+and ``DualDateTimeField``. Use them as you would any other field::
+
+    from django.db import models
+    from fernet_fields import DualEmailField
+
+
+    class MyModel(models.Model):
+        email = DualEmailField(unique=True)
+
+Unlike ``EncryptedField``, ``DualField`` supports ``db_index=True`` and
+``unique=True`` (still no ``primary_key=True``, though). Exact-match, ``__in``,
+and ``__isnull`` lookups are also permitted.
+
+Encryption keys are handled in the same way as for ``EncryptedField``.
+
+.. warning::
+
+   Because the SHA-256 hash is non-reversible, ``DualField`` still protects
+   your data in case of a database compromise. However, you do expose a bit
+   more information with ``DualField`` due to the deterministic hash. An
+   attacker can now see which rows have the same values and which have
+   different values (which an ``EncryptedField`` alone would not expose).
+
+   For this reason (and for simplicity of implementation) I recommend using
+   ``EncryptedField`` whenever possible, and only using ``DualField`` when you
+   absolutely need lookups and/or a database-level unique constraint on an
+   encrypted field.
+
+
+Enabling updates
+~~~~~~~~~~~~~~~~
+
+Due to limitations of the Django ORM, Django's default ``QuerySet.update()``
+does not work correctly if a ``DualField`` is updated; the hashed value is
+updated (so lookups will see the new value) but the encrypted value is not.
+
+In order to enable ``QuerySet.update()`` on a ``DualField``, you must use
+``fernet_fields.DualQuerySet`` instead. A ``DualManager`` is provided which
+uses ``DualQuerySet``::
+
+    from django.db import models
+    import fernet_fields
+
+    class MyModel(models.Model):
+        email = fernet_fields.DualEmailField()
+
+        objects = fernet_fields.DualManager()
+
+For this simplest case (where you only want one default manager on your class,
+named ``objects``), you can instead just inherit from the ``DualModel`` base
+model class (which does nothing but add ``objects = DualManager()``)::
+
+    from django.db import models
+    import fernet_fields
+    from fernet_fields.models import DualModel
+
+    class MyModel(DualModel):
+        email = fernet_fields.DualEmailField()
+
+This is equivalent to the above snippet using ``DualManager`` explicitly.
+
+If you already have a custom ``Manager`` subclass, you can create a manager
+that uses ``DualQuerySet`` via ``Manager.from_queryset()``::
+
+    from django.db import models
+    import fernet_fields
+    from somewhere import MyManager
+
+    MyDualManager = MyManager.from_queryset(fernet_fields.DualQuerySet)
+
+    class MyModel(models.Model):
+        email = fernet_fields.DualEmailField()
+
+        objects = MyDualManager()
+
 
 Ordering
-~~~~~~~~
+--------
 
-Ordering a queryset by an encrypted field will appear to work, but it will
-order according to the encrypted data, not the decrypted value, which is not
-very useful and probably not desired.
+Ordering a queryset by an ``EncryptedField`` or ``DualField`` will appear to
+work, but it will order according to the encrypted (or hashed) data, not the
+decrypted value, which is not very useful and probably not desired.
+
 
 Migrations
 ----------
 
-If migrating an existing non-encrypted field to its encrypted counterpart, you
-won't be able to use an ``AlterField`` operation. Since your database has no
-access to the encryption key, it can't update the column values
-correctly. Instead, you'll need to do a three-step migration dance:
+If migrating an existing non-encrypted field to its encrypted (or dual)
+counterpart, you won't be able to use a simple ``AlterField`` operation. Since
+your database has no access to the encryption key, it can't update the column
+values correctly. Instead, you'll need to do a three-step migration dance:
 
 1. Add the new encrypted field with a different name.
 2. Write a data migration (using RunPython and the ORM, not raw SQL) to copy
-   the values from the old field to the new (encrypting them in the process).
+   the values from the old field to the new (which automatically encrypts them
+   in the process).
 3. Remove the old field and (if needed) rename the new encrypted field to the
    old field's name.
+
+The same applies to migrating from an ``EncryptedField`` to a ``DualField`` or
+vice versa.
 
 
 Contributing

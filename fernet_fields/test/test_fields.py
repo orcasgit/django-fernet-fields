@@ -125,6 +125,13 @@ def test_unique(db, model):
         model.objects.create(value='foo')
 
 
+class TestDualField(object):
+    @pytest.mark.parametrize('key', ['primary_key'])
+    def test_not_allowed(self, key):
+        with pytest.raises(ImproperlyConfigured):
+            fields.DualIntegerField(**{key: True})
+
+
 @pytest.mark.parametrize(
     'model,vals',
     [
