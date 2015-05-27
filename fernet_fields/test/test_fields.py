@@ -1,5 +1,6 @@
 from cryptography.fernet import Fernet
 from datetime import date, datetime
+from hashlib import sha256
 
 from django.core.exceptions import FieldError, ImproperlyConfigured
 from django.db import connection, IntegrityError
@@ -102,48 +103,122 @@ class TestEncryptedFieldQueries(object):
             model.objects.get(value=vals[0])
 
 
-def test_nullable(db):
-    """Encrypted field can be nullable."""
-    models.EncryptedInt.objects.create(value=None)
-    found = models.EncryptedInt.objects.get()
+@pytest.mark.parametrize(
+    'model',
+    [models.EncryptedInt, models.NullableHash, models.DualNullable],
+)
+def test_nullable(db, model):
+    """Encrypted/dual field can be nullable."""
+    model.objects.create(value=None)
+    found = model.objects.get()
 
     assert found.value is None
 
 
+@pytest.mark.parametrize(
+    'model',
+    [models.UniqueHash, models.DualUnique],
+)
+def test_unique(db, model):
+    model.objects.create(value='foo')
+    model.objects.create(value='bar')
+    with pytest.raises(IntegrityError):
+        model.objects.create(value='foo')
+
+
 class TestHashField(object):
+    def test_update(self, db):
+        """Hash field updates on queryset update()"""
+        models.UniqueHash.objects.create(value='foo')
+        models.UniqueHash.objects.update(value='bar')
+        found = models.UniqueHash.objects.get(hashed='bar')
+
+        assert found.value == 'bar'
+
     def test_exact_lookup(self, db):
-        models.EncryptedUnique.objects.create(value='foo')
-        models.EncryptedUnique.objects.create(value='bar')
-        found = models.EncryptedUnique.objects.get(hashed='foo')
+        models.UniqueHash.objects.create(value='foo')
+        models.UniqueHash.objects.create(value='bar')
+        found = models.UniqueHash.objects.get(hashed='foo')
 
         assert found.value == 'foo'
 
     def test_in_lookup(self, db):
-        models.EncryptedUnique.objects.create(value='foo')
-        models.EncryptedUnique.objects.create(value='bar')
-        found = models.EncryptedUnique.objects.get(hashed__in=['foo'])
+        models.UniqueHash.objects.create(value='foo')
+        models.UniqueHash.objects.create(value='bar')
+        found = models.UniqueHash.objects.get(hashed__in=['foo'])
 
         assert found.value == 'foo'
 
-    def test_unique(self, db):
-        models.EncryptedUnique.objects.create(value='foo')
-        models.EncryptedUnique.objects.create(value='bar')
-        with pytest.raises(IntegrityError):
-            models.EncryptedUnique.objects.create(value='foo')
-
-    def test_nullable(self, db):
-        models.EncryptedNullableHash.objects.create(value=None)
-        found = models.EncryptedNullableHash.objects.get(hashed=None)
-
-        assert found.value is None
-
     def test_nullable_isnull_lookup(self, db):
-        models.EncryptedNullableHash.objects.create(value=None)
-        found = models.EncryptedNullableHash.objects.get(hashed__isnull=True)
+        models.NullableHash.objects.create(value=None)
+        found = models.NullableHash.objects.get(hashed__isnull=True)
 
         assert found.value is None
 
     def test_other_lookup_raises(self, db):
-        models.EncryptedUnique.objects.create(value='foo')
+        models.UniqueHash.objects.create(value='foo')
         with pytest.raises(FieldError):
-            models.EncryptedUnique.objects.get(hashed__gte='foo')
+            models.UniqueHash.objects.get(hashed__gte='foo')
+
+
+@pytest.mark.parametrize(
+    'model,vals',
+    [
+        (models.DualText, ['foo', 'bar']),
+        # (models.DualChar, ['one', 'two']),
+        # (models.DualEmail, ['a@example.com', 'b@example.com']),
+        # (models.DualInt, [1, 2]),
+        # (models.DualDate, [date(2015, 2, 5), date(2015, 2, 8)]),
+        # (
+        #     models.DualDateTime,
+        #     [datetime(2015, 2, 5, 15), datetime(2015, 2, 8, 16)],
+        # ),
+    ],
+)
+class TestDualFieldQueries(object):
+    def test_insert(self, db, model, vals):
+        """Data stored in DB is actually encrypted / hashed."""
+        field = model._meta.get_field('value')
+        enc_field = model._meta.get_field('value_encrypted')
+        model.objects.create(value=vals[0])
+        with connection.cursor() as cur:
+            cur.execute(
+                'SELECT value, value_encrypted FROM %s' % model._meta.db_table)
+            values = []
+            hashes = []
+            for row in cur.fetchall():
+                values.append(
+                    force_text(enc_field.fernet.decrypt(force_bytes(row[1]))))
+                hashes.append(row[0])
+
+        assert list(map(field.to_python, values)) == [vals[0]]
+        assert hashes == [sha256(force_bytes(vals[0])).digest()]
+
+    def test_insert_and_select(self, db, model, vals):
+        """Data round-trips through insert and select."""
+        model.objects.create(value=vals[0])
+        found = model.objects.get()
+
+        assert found.value == vals[0]
+
+    def test_update_and_select(self, db, model, vals):
+        """Data round-trips through update and select."""
+        model.objects.create(value=vals[0])
+        model.objects.update(value=vals[1])
+        found = model.objects.get()
+
+        assert found.value == vals[1]
+
+    def test_exact_lookup(self, db, model, vals):
+        model.objects.create(value=vals[0])
+        model.objects.create(value=vals[1])
+        found = model.objects.get(value=vals[0])
+
+        assert found.value == vals[0]
+
+    def test_in_lookup(self, db, model, vals):
+        model.objects.create(value=vals[0])
+        model.objects.create(value=vals[1])
+        found = model.objects.get(value__in=[vals[0]])
+
+        assert found.value == vals[0]

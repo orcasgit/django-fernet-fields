@@ -75,13 +75,13 @@ Several other field classes are included: ``EncryptedCharField``,
 their non-encrypted versions (in addition to the optional encryption-specific
 keyword arguments discussed below).
 
-To create an encrypted version of some other custom field class, use
-``EncryptedFieldMixin``::
+To create an encrypted version of some other custom field class, inherit from
+both ``EncryptedField`` and the other field class::
 
-    from fernet_fields import EncryptedFieldMixin
+    from fernet_fields import EncryptedField
     from somewhere import MyField
 
-    class MyEncryptedField(EncryptedFieldMixin, MyField):
+    class MyEncryptedField(EncryptedField, MyField):
         pass
 
 
@@ -147,17 +147,18 @@ is useless. Every encrypted value will always be different, and every
 exact-match lookup will fail; some other lookup types could appear to succeed,
 but the results would be meaningless.
 
-For this reason, and to avoid unexpected surprises, any encrypted field will
+For this reason, and to avoid unexpected surprises, ``EncryptedField`` will
 raise ``django.core.exceptions.ImproperlyConfigured`` if passed any of
 ``db_index=True``, ``unique=True``, or ``primary_key=True``, and any type of
-lookup on an encrypted field will raise ``django.core.exceptions.FieldError``.
+lookup on an ``EncryptedField`` will raise
+``django.core.exceptions.FieldError``.
 
 To work around this problem in cases where uniqueness must be enforced (or
 matching lookups must be performed) on an encrypted field,
 ``django-fernet-fields`` also includes a ``HashField`` which saves a
 (deterministic) one-way hash of the value of some other field on the
-model. Thus uniqueness can be enforced on the ``HashField``, or it can be
-indexed for exact and ``__in`` lookups::
+model. Thus uniqueness can be enforced on the ``HashField``, and it can be
+indexed and used in exact and ``__in`` lookups::
 
     from fernet_fields import EncryptedEmailField, HashField
 

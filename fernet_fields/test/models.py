@@ -27,11 +27,23 @@ class EncryptedDateTime(models.Model):
     value = fields.EncryptedDateTimeField()
 
 
-class EncryptedUnique(models.Model):
+class UniqueHash(models.Model):
     value = fields.EncryptedTextField()
     hashed = fields.HashField('value', unique=True)
 
 
-class EncryptedNullableHash(models.Model):
+class NullableHash(models.Model):
     value = fields.EncryptedTextField(null=True)
     hashed = fields.HashField('value', null=True)
+
+
+class DualText(models.Model):
+    value = fields.DualTextField()
+
+
+class DualUnique(models.Model):
+    value = fields.DualTextField(unique=True)
+
+
+class DualNullable(models.Model):
+    value = fields.DualTextField(null=True)
