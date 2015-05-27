@@ -133,10 +133,14 @@ class DualField(models.Field):
             raise ImproperlyConfigured(
                 "DualField does not support primary_key=True."
             )
-        self.populate_from_field = self.encrypted_field_class(editable=False)
         super(DualField, self).__init__(*args, **kwargs)
-        if self.null:
-            self.populate_from_field.null = True
+        self.populate_from_field = self.encrypted_field_class(
+            editable=False, null=self.null)
+        # Ensure that the encrypted field has a lower creation counter than any
+        # other field, so Model.__init__() will try to populate it first (since
+        # it will be populated with the default value initially, and only with
+        # the real value when the main DualField's value is set).
+        self.populate_from_field.creation_counter = -1
 
     def contribute_to_class(self, cls, name, *a, **kw):
         super(DualField, self).contribute_to_class(cls, name, *a, **kw)
