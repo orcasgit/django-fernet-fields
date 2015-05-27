@@ -1,3 +1,5 @@
+from hashlib import sha256
+
 from cryptography.fernet import Fernet, MultiFernet
 from django.conf import settings
 from django.core.exceptions import FieldError, ImproperlyConfigured
@@ -71,7 +73,7 @@ class EncryptedFieldMixin(models.Field):
             retval = self.fernet.encrypt(force_bytes(value))
             return connection.Database.Binary(retval)
 
-    def get_db_prep_lookup(self, lookup_type, value, connection, *a, **kw):
+    def get_prep_lookup(self, lookup_type, value):
         raise FieldError(
             "Encrypted field '%s' does not support lookups." % self.name
         )
@@ -104,3 +106,40 @@ class EncryptedDateField(EncryptedFieldMixin, models.DateField):
 
 class EncryptedDateTimeField(EncryptedFieldMixin, models.DateTimeField):
     pass
+
+
+class HashField(models.Field):
+    def __init__(self, populate_from, *args, **kwargs):
+        self.populate_from = populate_from
+        super(HashField, self).__init__(*args, **kwargs)
+
+    def db_type(self, connection):
+        # PostgreSQL and SQLite both support the BYTEA type.
+        return 'bytea'
+
+    def get_internal_type(self):
+        """Prevent Django attempting type conversions on hashed data."""
+        return None
+
+    def get_db_prep_value(self, value, connection, *a, **kw):
+        value = super(
+            HashField, self
+        ).get_db_prep_value(value, connection, *a, **kw)
+        if value is not None:
+            retval = sha256(force_bytes(value)).digest()
+            return connection.Database.Binary(retval)
+
+    @cached_property
+    def populate_from_field(self):
+        return self.model._meta.get_field(self.populate_from)
+
+    def pre_save(self, instance, add):
+        return self.populate_from_field.value_from_object(instance)
+
+    def get_prep_lookup(self, lookup_type, value):
+        if lookup_type not in {'exact', 'in', 'isnull'}:
+            raise FieldError(
+                "HashField '%s' supports only exact, in, and isnull lookups."
+                % self.name
+            )
+        return super(HashField, self).get_prep_lookup(lookup_type, value)

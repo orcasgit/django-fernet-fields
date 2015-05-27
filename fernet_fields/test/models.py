@@ -25,3 +25,13 @@ class EncryptedDate(models.Model):
 
 class EncryptedDateTime(models.Model):
     value = fields.EncryptedDateTimeField()
+
+
+class EncryptedUnique(models.Model):
+    value = fields.EncryptedTextField()
+    hashed = fields.HashField('value', unique=True)
+
+
+class EncryptedNullableHash(models.Model):
+    value = fields.EncryptedTextField(null=True)
+    hashed = fields.HashField('value', null=True)

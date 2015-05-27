@@ -2,7 +2,7 @@ from cryptography.fernet import Fernet
 from datetime import date, datetime
 
 from django.core.exceptions import FieldError, ImproperlyConfigured
-from django.db import connection
+from django.db import connection, IntegrityError
 from django.utils.encoding import force_bytes, force_text
 import pytest
 
@@ -108,3 +108,42 @@ def test_nullable(db):
     found = models.EncryptedInt.objects.get()
 
     assert found.value is None
+
+
+class TestHashField(object):
+    def test_exact_lookup(self, db):
+        models.EncryptedUnique.objects.create(value='foo')
+        models.EncryptedUnique.objects.create(value='bar')
+        found = models.EncryptedUnique.objects.get(hashed='foo')
+
+        assert found.value == 'foo'
+
+    def test_in_lookup(self, db):
+        models.EncryptedUnique.objects.create(value='foo')
+        models.EncryptedUnique.objects.create(value='bar')
+        found = models.EncryptedUnique.objects.get(hashed__in=['foo'])
+
+        assert found.value == 'foo'
+
+    def test_unique(self, db):
+        models.EncryptedUnique.objects.create(value='foo')
+        models.EncryptedUnique.objects.create(value='bar')
+        with pytest.raises(IntegrityError):
+            models.EncryptedUnique.objects.create(value='foo')
+
+    def test_nullable(self, db):
+        models.EncryptedNullableHash.objects.create(value=None)
+        found = models.EncryptedNullableHash.objects.get(hashed=None)
+
+        assert found.value is None
+
+    def test_nullable_isnull_lookup(self, db):
+        models.EncryptedNullableHash.objects.create(value=None)
+        found = models.EncryptedNullableHash.objects.get(hashed__isnull=True)
+
+        assert found.value is None
+
+    def test_other_lookup_raises(self, db):
+        models.EncryptedUnique.objects.create(value='foo')
+        with pytest.raises(FieldError):
+            models.EncryptedUnique.objects.get(hashed__gte='foo')
