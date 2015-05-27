@@ -1,6 +1,6 @@
 from django.db import models
 
-from fernet_fields import fields
+import fernet_fields as fields
 
 
 class EncryptedText(models.Model):
@@ -33,6 +33,8 @@ class EncryptedNullable(models.Model):
 
 class DualText(models.Model):
     value = fields.DualTextField()
+
+    objects = models.Manager.from_queryset(fields.DualQuerySet)()
 
 
 class DualUnique(models.Model):

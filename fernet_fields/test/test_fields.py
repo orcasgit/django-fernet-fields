@@ -165,7 +165,6 @@ class TestDualFieldQueries(object):
 
         assert found.value == vals[0]
 
-    @pytest.mark.xfail
     def test_update_and_select(self, db, model, vals):
         """Data round-trips through update and select."""
         model.objects.create(value=vals[0])
