@@ -8,7 +8,6 @@ from . import fields
 __all__ = [
     'DualQuerySet',
     'DualManager',
-    'DualModel',
 ]
 
 
@@ -33,10 +32,3 @@ class DualQuerySet(models.QuerySet):
 
 
 DualManager = models.Manager.from_queryset(DualQuerySet)
-
-
-class DualModel(models.Model):
-    class Meta:
-        abstract = True
-
-    objects = DualManager()

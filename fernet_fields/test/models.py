@@ -1,6 +1,7 @@
 from django.db import models
 
 import fernet_fields as fields
+from fernet_fields.models import DualModel
 
 
 class EncryptedText(models.Model):
@@ -31,27 +32,27 @@ class EncryptedNullable(models.Model):
     value = fields.EncryptedIntegerField(null=True)
 
 
-class DualText(fields.DualModel):
+class DualText(DualModel):
     value = fields.DualTextField()
 
 
-class DualChar(fields.DualModel):
+class DualChar(DualModel):
     value = fields.DualCharField(max_length=25)
 
 
-class DualEmail(fields.DualModel):
+class DualEmail(DualModel):
     value = fields.DualEmailField()
 
 
-class DualInt(fields.DualModel):
+class DualInt(DualModel):
     value = fields.DualIntegerField()
 
 
-class DualDate(fields.DualModel):
+class DualDate(DualModel):
     value = fields.DualDateField()
 
 
-class DualDateTime(fields.DualModel):
+class DualDateTime(DualModel):
     value = fields.DualDateTimeField()
 
 
