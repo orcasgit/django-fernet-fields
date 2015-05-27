@@ -240,6 +240,25 @@ that uses ``DualQuerySet`` via ``Manager.from_queryset()``::
         objects = MyDualManager()
 
 
+Other field types
+~~~~~~~~~~~~~~~~~
+
+In order to create a ``DualField`` subclass for some other type of field, you
+must first create an ``EncryptedField`` for it, and then assign that
+``EncryptedField`` subclass to the ``encrypted_field_class`` attribute of your
+``DualField`` subclass::
+
+    import fernet_fields
+    from somewhere import MyField
+
+    class MyEncryptedField(fernet_fields.EncryptedField, MyField):
+        pass
+
+    class MyDualField(fernet_fields.DualField, MyField):
+        encrypted_field_class = MyEncryptedField
+
+
+
 Ordering
 --------
 
