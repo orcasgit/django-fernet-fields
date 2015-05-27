@@ -153,31 +153,6 @@ raise ``django.core.exceptions.ImproperlyConfigured`` if passed any of
 lookup on an ``EncryptedField`` will raise
 ``django.core.exceptions.FieldError``.
 
-To work around this problem in cases where uniqueness must be enforced (or
-matching lookups must be performed) on an encrypted field,
-``django-fernet-fields`` also includes a ``HashField`` which saves a
-(deterministic) one-way hash of the value of some other field on the
-model. Thus uniqueness can be enforced on the ``HashField``, and it can be
-indexed and used in exact and ``__in`` lookups::
-
-    from fernet_fields import EncryptedEmailField, HashField
-
-    class User(models.Model):
-        email = EncryptedEmailField()
-        email_hash = HashField('email', unique=True)
-
-(The first argument to ``HashField`` is the name of some other field on the
-model whose value should be hashed in the ``HashField``.)
-
-With this sample model, email uniqueness will be enforced at the database level
-by the ``email_hash`` field, and lookups can be performed against the
-``HashField`` as well::
-
-    User.objects.get(email_hash='someone@example.com')
-
-Only exact, ``__in`` and ``__isnull`` lookups can be performed against a
-``HashField``; other types of lookups will raise ``FieldError``.
-
 
 Ordering
 ~~~~~~~~
