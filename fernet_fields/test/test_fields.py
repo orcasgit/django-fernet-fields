@@ -50,6 +50,12 @@ class TestEncryptedField(object):
         with pytest.raises(ImproperlyConfigured):
             fields.EncryptedIntegerField(**{key: True})
 
+    def test_get_integer_field_validators(self):
+        f = fields.EncryptedIntegerField()
+
+        # Raises no error
+        f.validators
+
 
 @pytest.mark.parametrize(
     'model,vals',

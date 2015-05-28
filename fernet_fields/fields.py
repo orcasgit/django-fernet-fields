@@ -31,6 +31,8 @@ __all__ = [
 
 class EncryptedField(models.Field):
     """A field that encrypts values using Fernet symmetric encryption."""
+    _internal_type = 'BinaryField'
+
     def __init__(self, *args, **kwargs):
         if kwargs.get('primary_key'):
             raise ImproperlyConfigured(
@@ -69,7 +71,7 @@ class EncryptedField(models.Field):
         return MultiFernet([Fernet(k) for k in self.fernet_keys])
 
     def get_internal_type(self):
-        return 'BinaryField'
+        return self._internal_type
 
     def get_db_prep_save(self, value, connection):
         value = super(
@@ -89,6 +91,19 @@ class EncryptedField(models.Field):
         if value is not None:
             value = bytes(value)
             return self.to_python(force_text(self.fernet.decrypt(value)))
+
+    @cached_property
+    def validators(self):
+        # Temporarily pretend to be whatever type of field we're masquerading
+        # as, for purposes of constructing validators (needed for
+        # IntegerField and subclasses).
+        self.__dict__['_internal_type'] = super(
+            EncryptedField, self
+        ).get_internal_type()
+        try:
+            return super(EncryptedField, self).validators
+        finally:
+            del self.__dict__['_internal_type']
 
 
 class EncryptedTextField(EncryptedField, models.TextField):
