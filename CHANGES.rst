@@ -1,6 +1,12 @@
 CHANGES
 =======
 
+0.2 (2015.05.28)
+----------------
+
+* Extract HashField for advanced lookup needs.
+
+
 0.1 (2015.05.27)
 ----------------
 
