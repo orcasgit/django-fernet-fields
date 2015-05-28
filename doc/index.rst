@@ -318,6 +318,12 @@ field, of course, but you can get the same effect by querying on the
 
     User.objects.filter(email_lc=some_email.lower())
 
+.. note::
+
+   ``HashField`` is not able to automatically update itself if you update its
+   source field using a ``.update()`` query. In this case, you should also
+   update the ``HashField`` yourself in the same ``.update()``.
+
 
 Contributing
 ------------
