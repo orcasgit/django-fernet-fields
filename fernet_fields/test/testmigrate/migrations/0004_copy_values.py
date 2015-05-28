@@ -8,12 +8,14 @@ def forwards(apps, schema_editor):
     DualText = apps.get_model('testmigrate', 'DualText')
     for obj in DualText.objects.all():
         obj.value_dual = obj.value
+        obj.save(force_update=True)
 
 
 def backwards(apps, schema_editor):
     DualText = apps.get_model('testmigrate', 'DualText')
     for obj in DualText.objects.all():
         obj.value = obj.value_dual
+        obj.save(force_update=True)
 
 
 class Migration(migrations.Migration):
