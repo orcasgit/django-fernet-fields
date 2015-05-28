@@ -1,8 +1,8 @@
 CHANGES
 =======
 
-master (unreleased)
--------------------
+0.2.1 (2015.05.28)
+------------------
 
 * Fix issue getting IntegerField validators.
 
