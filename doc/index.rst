@@ -285,6 +285,40 @@ The same applies to migrating from an ``EncryptedField`` to a ``DualField`` or
 vice versa.
 
 
+Advanced lookups with HashField subclasses
+------------------------------------------
+
+If you need more complex lookups on an encrypted field (``__iexact``
+case-insensitive lookups, for instance), you can often emulate them by adding
+another column that stores the hash of a transformed version of the field's
+value. You can use ``fernet_fields.HashField`` for this. It's the underlying
+implementation used in ``DualField``, made available for use independently. You
+just instantiate it with the name of another field on the model whose value it
+should hash. You can subclass it and override the ``hash_value()`` method to
+perform transformations on a value before hashing.
+
+For instance, here's code to allow case-insensitive lookups of an encrypted
+email address::
+
+    from django.db import models
+    import fernet_fields as fernet
+
+    class LowerCasedHashField(fernet.HashField):
+        def hash_value(self, value):
+            return super(LowerCasedHashField, self).hash_value(value.lower())
+
+    class User(models.Model):
+        email = fernet.DualEmailField(unique=True)
+        # Hash of lower-cased email, for case-insensitive email comparisons.
+        email_lc = fields.LowerCasedHashField('email')
+
+This doesn't allow transparent use of ``__iexact`` lookups on the ``email``
+field, of course, but you can get the same effect by querying on the
+``HashField`` directly with a transformed value::
+
+    User.objects.filter(email_lc=some_email.lower())
+
+
 Contributing
 ------------
 
