@@ -131,6 +131,14 @@ class TestDualField(object):
         with pytest.raises(ImproperlyConfigured):
             fields.DualIntegerField(**{key: True})
 
+    def test_deconstruct(self):
+        """Deconstruction prevents double-adding enc field in migrations."""
+        f = fields.DualTextField()
+
+        name, path, args, kwargs = f.deconstruct()
+
+        assert kwargs['_add_encrypted_field'] is False
+
 
 @pytest.mark.parametrize(
     'model,vals',
@@ -176,9 +184,18 @@ class TestDualFieldQueries(object):
         """Data round-trips through update and select."""
         model.objects.create(value=vals[0])
         model.objects.update(value=vals[1])
-        found = model.objects.get()
+        found = model.objects.get(value=vals[1])
 
         assert found.value == vals[1]
+
+    def test_double_update_and_select(self, db, model, vals):
+        """Data round-trips through double update and select."""
+        model.objects.create(value=vals[0])
+        model.objects.update(value=vals[1])
+        model.objects.update(value=vals[0])
+        found = model.objects.get(value=vals[0])
+
+        assert found.value == vals[0]
 
     def test_exact_lookup(self, db, model, vals):
         model.objects.create(value=vals[0])
@@ -199,3 +216,11 @@ class TestDualFieldQueries(object):
 
         with pytest.raises(FieldError):
             model.objects.get(value__gte=vals[0])
+
+
+def test_update_other(db):
+    models.DualPlus.objects.create(dual='one', other='two')
+    models.DualPlus.objects.update(other='b')
+    found = models.DualPlus.objects.get()
+
+    assert found.other == 'b'

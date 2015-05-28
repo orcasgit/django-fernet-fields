@@ -149,27 +149,38 @@ class DualField(models.Field):
 
     """
     encrypted_field_class = EncryptedField
+    encrypted_field_class_required_params = []
 
     def __init__(self, *args, **kwargs):
         if kwargs.get('primary_key'):
             raise ImproperlyConfigured(
                 "DualField does not support primary_key=True."
             )
+        # This kwarg isn't for public use, it's to prevent the encrypted field
+        # being double-added in a migrations context.
+        self.add_encrypted_field = kwargs.pop('_add_encrypted_field', True)
         super(DualField, self).__init__(*args, **kwargs)
-        # Create the associated encrypted field.
-        self.encrypted_field = self.encrypted_field_class(
-            editable=False, null=self.null)
-        # Ensure that the encrypted field has a lower creation counter than any
-        # other field, so Model.__init__() will try to populate it first (since
-        # it will be populated with the default value initially, and only with
-        # the real value when the main DualField's value is set).
-        self.encrypted_field.creation_counter = -1
+
+    @cached_property
+    def encrypted_field(self):
+        return self.model._meta.get_field(self.encrypted_field_name)
 
     def contribute_to_class(self, cls, name, *a, **kw):
         super(DualField, self).contribute_to_class(cls, name, *a, **kw)
-        encrypted_field_name = name + '_encrypted'
-        self.encrypted_field.contribute_to_class(cls, encrypted_field_name)
-        descriptor = DualFieldDescriptor(self.encrypted_field.attname)
+        self.encrypted_field_name = name + '_encrypted'
+        if self.add_encrypted_field:
+            # Create the associated encrypted field.
+            encrypted_field = self.encrypted_field_class(
+                editable=False, null=self.null)
+            # Ensure that the encrypted field has a lower creation counter than
+            # any other field, so Model.__init__() will try to populate it
+            # first (since it will be populated with the default value
+            # initially, and only with the real value when the main DualField's
+            # value is set).
+            encrypted_field.creation_counter = -1
+            encrypted_field.contribute_to_class(cls, self.encrypted_field_name)
+
+        descriptor = DualFieldDescriptor(self.encrypted_field_name)
         setattr(cls, name, descriptor)
 
     def get_internal_type(self):
@@ -201,13 +212,23 @@ class DualField(models.Field):
         """No useful value is recoverable from the stored hash."""
         return NO_VALUE
 
+    def deconstruct(self):
+        name, path, args, kwargs = super(
+            DualField, self
+        ).deconstruct()
+
+        kwargs['_add_encrypted_field'] = False
+
+        return name, path, args, kwargs
+
 
 class DualTextField(DualField, models.TextField):
     encrypted_field_class = EncryptedTextField
 
 
 class DualCharField(DualField, models.CharField):
-    encrypted_field_class = EncryptedCharField
+    # Not a typo; this works equally well and avoids max-length errors
+    encrypted_field_class = EncryptedTextField
 
 
 class DualEmailField(DualField, models.EmailField):

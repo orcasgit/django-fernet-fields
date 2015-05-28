@@ -62,3 +62,8 @@ class DualUnique(models.Model):
 
 class DualNullable(models.Model):
     value = fields.DualTextField(null=True)
+
+
+class DualPlus(DualModel):
+    dual = fields.DualTextField()
+    other = models.TextField()
