@@ -28,7 +28,7 @@ class DualQuerySet(models.QuerySet):
             dualfields = {}
             for field in self.model._meta.get_fields():
                 if isinstance(field, fields.DualField):
-                    dualfields[field.attname] = field.encrypted_field.attname
+                    dualfields[field.attname] = field.source_field.attname
             self.model._dualfields_cache = dualfields
         return dualfields
 

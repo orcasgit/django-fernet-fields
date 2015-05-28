@@ -18,6 +18,7 @@ __all__ = [
     'EncryptedIntegerField',
     'EncryptedDateField',
     'EncryptedDateTimeField',
+    'HashField',
     'DualField',
     'DualTextField',
     'DualCharField',
@@ -33,15 +34,18 @@ class EncryptedField(models.Field):
     def __init__(self, *args, **kwargs):
         if kwargs.get('primary_key'):
             raise ImproperlyConfigured(
-                "EncryptedField does not support primary_key=True."
+                "%s does not support primary_key=True."
+                % self.__class__.__name__
             )
         if kwargs.get('unique'):
             raise ImproperlyConfigured(
-                "EncryptedField does not support unique=True."
+                "%s does not support unique=True."
+                % self.__class__.__name__
             )
         if kwargs.get('db_index'):
             raise ImproperlyConfigured(
-                "EncryptedField does not support db_index=True."
+                "%s does not support db_index=True."
+                % self.__class__.__name__
             )
         super(EncryptedField, self).__init__(*args, **kwargs)
 
@@ -77,7 +81,8 @@ class EncryptedField(models.Field):
 
     def get_prep_lookup(self, lookup_type, value):
         raise FieldError(
-            "Encrypted field '%s' does not support lookups." % self.name
+            "%s '%s' does not support lookups."
+            % (self.__class__.__name__, self.name)
         )
 
     def from_db_value(self, value, expression, connection, context):
@@ -110,6 +115,55 @@ class EncryptedDateTimeField(EncryptedField, models.DateTimeField):
     pass
 
 
+class HashField(models.Field):
+    """A field that stores a hash of the value of some other field."""
+    no_value = None
+
+    def __init__(self, source_field_name, *args, **kwargs):
+        self.source_field_name = source_field_name
+        super(HashField, self).__init__(*args, **kwargs)
+
+    def get_internal_type(self):
+        return 'BinaryField'
+
+    @cached_property
+    def source_field(self):
+        return self.model._meta.get_field(self.source_field_name)
+
+    def pre_save(self, instance, add):
+        """Get our value to save from our source field."""
+        return self.source_field.value_from_object(instance)
+
+    def hash_value(self, val):
+        return sha256(force_bytes(val)).digest()
+
+    def get_prep_lookup(self, lookup_type, value):
+        if lookup_type not in {'exact', 'in', 'isnull'}:
+            raise FieldError(
+                "DualField '%s' supports only exact, in, and isnull lookups."
+                % self.name
+            )
+        return super(HashField, self).get_prep_lookup(lookup_type, value)
+
+    def from_db_value(self, value, expression, connection, context):
+        """No useful value is recoverable from the stored hash."""
+        return self.no_value
+
+    def get_db_prep_value(self, value, connection, *a, **kw):
+        value = super(
+            HashField, self
+        ).get_db_prep_value(value, connection, *a, **kw)
+        if value is not None:
+            return connection.Database.Binary(self.hash_value(value))
+
+    def deconstruct(self):
+        name, path, args, kwargs = super(
+            HashField, self
+        ).deconstruct()
+
+        return name, path, [self.source_field_name] + args, kwargs
+
+
 NO_VALUE = object()
 
 
@@ -130,7 +184,7 @@ class DualFieldDescriptor(object):
             return setattr(obj, self.encrypted_field_attname, value)
 
 
-class DualField(models.Field):
+class DualField(HashField):
     """A field type that stores both encrypted and hashed (for lookups).
 
     The DualField itself stores the SHA-256 hash of its value, and returns
@@ -148,8 +202,8 @@ class DualField(models.Field):
     hashes that value (via its pre_save() method).
 
     """
+    no_value = NO_VALUE
     encrypted_field_class = EncryptedField
-    encrypted_field_class_required_params = []
 
     def __init__(self, *args, **kwargs):
         if kwargs.get('primary_key'):
@@ -159,15 +213,11 @@ class DualField(models.Field):
         # This kwarg isn't for public use, it's to prevent the encrypted field
         # being double-added in a migrations context.
         self.add_encrypted_field = kwargs.pop('_add_encrypted_field', True)
-        super(DualField, self).__init__(*args, **kwargs)
-
-    @cached_property
-    def encrypted_field(self):
-        return self.model._meta.get_field(self.encrypted_field_name)
+        super(DualField, self).__init__(None, *args, **kwargs)
 
     def contribute_to_class(self, cls, name, *a, **kw):
         super(DualField, self).contribute_to_class(cls, name, *a, **kw)
-        self.encrypted_field_name = name + '_encrypted'
+        self.source_field_name = name + '_encrypted'
         if self.add_encrypted_field:
             # Create the associated encrypted field.
             encrypted_field = self.encrypted_field_class(
@@ -178,39 +228,10 @@ class DualField(models.Field):
             # initially, and only with the real value when the main DualField's
             # value is set).
             encrypted_field.creation_counter = -1
-            encrypted_field.contribute_to_class(cls, self.encrypted_field_name)
+            encrypted_field.contribute_to_class(cls, self.source_field_name)
 
-        descriptor = DualFieldDescriptor(self.encrypted_field_name)
+        descriptor = DualFieldDescriptor(self.source_field_name)
         setattr(cls, name, descriptor)
-
-    def get_internal_type(self):
-        return 'BinaryField'
-
-    def _hash_value(self, val):
-        return sha256(force_bytes(val)).digest()
-
-    def get_db_prep_value(self, value, connection, *a, **kw):
-        value = super(
-            DualField, self
-        ).get_db_prep_value(value, connection, *a, **kw)
-        if value is not None:
-            return connection.Database.Binary(self._hash_value(value))
-
-    def pre_save(self, instance, add):
-        """Get our value to save from our encrypted field."""
-        return self.encrypted_field.value_from_object(instance)
-
-    def get_prep_lookup(self, lookup_type, value):
-        if lookup_type not in {'exact', 'in', 'isnull'}:
-            raise FieldError(
-                "DualField '%s' supports only exact, in, and isnull lookups."
-                % self.name
-            )
-        return super(DualField, self).get_prep_lookup(lookup_type, value)
-
-    def from_db_value(self, value, expression, connection, context):
-        """No useful value is recoverable from the stored hash."""
-        return NO_VALUE
 
     def deconstruct(self):
         name, path, args, kwargs = super(
@@ -219,7 +240,8 @@ class DualField(models.Field):
 
         kwargs['_add_encrypted_field'] = False
 
-        return name, path, args, kwargs
+        # remove the source-field-name that HashField adds to args.
+        return name, path, args[1:], kwargs
 
 
 class DualTextField(DualField, models.TextField):

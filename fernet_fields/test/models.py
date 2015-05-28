@@ -32,6 +32,16 @@ class EncryptedNullable(models.Model):
     value = fields.EncryptedIntegerField(null=True)
 
 
+class HashText(models.Model):
+    value = fields.EncryptedTextField()
+    hashed_value = fields.HashField('value')
+
+
+class HashNullable(models.Model):
+    value = fields.EncryptedIntegerField(null=True)
+    hashed_value = fields.HashField('value', null=True)
+
+
 class DualText(DualModel):
     value = fields.DualTextField()
 

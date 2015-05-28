@@ -102,16 +102,29 @@ class TestEncryptedFieldQueries(object):
             model.objects.get(value=vals[0])
 
 
-@pytest.mark.parametrize(
-    'model',
-    [models.EncryptedNullable, models.DualNullable],
-)
-def test_nullable(db, model):
-    """Encrypted/dual field can be nullable."""
-    model.objects.create(value=None)
-    found = model.objects.get()
+class TestHashField(object):
+    def test_deconstruct(self):
+        f = fields.HashField('source')
 
-    assert found.value is None
+        name, path, args, kwargs = f.deconstruct()
+
+        assert args == ['source']
+
+
+@pytest.mark.parametrize(
+    'model,vals',
+    [
+        (models.HashText, ['foo', 'bar']),
+        (models.HashNullable, [1, 2]),
+    ],
+)
+class TestHashFieldQueries(object):
+    def test_filter(self, db, model, vals):
+        model.objects.create(value=vals[0])
+        model.objects.create(value=vals[1])
+        found = model.objects.get(hashed_value=vals[1])
+
+        assert found.value == vals[1]
 
 
 @pytest.mark.parametrize(
@@ -137,6 +150,7 @@ class TestDualField(object):
 
         name, path, args, kwargs = f.deconstruct()
 
+        assert not args
         assert kwargs['_add_encrypted_field'] is False
 
 
@@ -171,7 +185,7 @@ class TestDualFieldQueries(object):
                 hashes.append(force_bytes(row[0]))
 
         assert list(map(field.to_python, values)) == [vals[0]]
-        assert hashes == [field._hash_value(vals[0])]
+        assert hashes == [field.hash_value(vals[0])]
 
     def test_insert_and_select(self, db, model, vals):
         """Data round-trips through insert and select."""
@@ -224,3 +238,15 @@ def test_update_other(db):
     found = models.DualPlus.objects.get()
 
     assert found.other == 'b'
+
+
+@pytest.mark.parametrize(
+    'model',
+    [models.EncryptedNullable, models.HashNullable, models.DualNullable],
+)
+def test_nullable(db, model):
+    """Encrypted/dual/hash field can be nullable."""
+    model.objects.create(value=None)
+    found = model.objects.get()
+
+    assert found.value is None
