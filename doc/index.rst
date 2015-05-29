@@ -47,8 +47,8 @@ the values will automatically be encrypted before being sent to the database
 and decrypted when read from the database.
 
 Encryption and decryption are performed in your app; the secret key is never
-sent to the database server. The database sees only the encrypted values of
-this field.
+sent to the database server. The database sees only the encrypted value of this
+field.
 
 
 Field types
@@ -129,8 +129,8 @@ is useless. Every encrypted value will always be different, and every
 exact-match lookup will fail; some other lookup types could appear to succeed,
 but the results would be meaningless.
 
-For this reason, and to avoid unexpected surprises, ``EncryptedField`` will
-raise ``django.core.exceptions.ImproperlyConfigured`` if passed any of
+For this reason, ``EncryptedField`` will raise
+``django.core.exceptions.ImproperlyConfigured`` if passed any of
 ``db_index=True``, ``unique=True``, or ``primary_key=True``, and any type of
 lookup on an ``EncryptedField`` will raise
 ``django.core.exceptions.FieldError``.
