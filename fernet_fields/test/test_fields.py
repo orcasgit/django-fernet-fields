@@ -2,7 +2,7 @@ from cryptography.fernet import Fernet
 from datetime import date, datetime
 
 from django.core.exceptions import FieldError, ImproperlyConfigured
-from django.db import connection, IntegrityError
+from django.db import connection
 from django.utils.encoding import force_bytes, force_text
 import pytest
 
