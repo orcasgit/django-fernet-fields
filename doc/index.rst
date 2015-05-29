@@ -135,144 +135,22 @@ For this reason, ``EncryptedField`` will raise
 lookup on an ``EncryptedField`` will raise
 ``django.core.exceptions.FieldError``.
 
-If you need to allow indexes and exact-match lookups against encrypted fields,
-use a ``DualField`` instead:
-
-
-DualField
----------
-
-In order to allow exact-match lookups and indexing (including unique
-constraints) of encrypted fields, a ``DualField`` stores two columns in the
-database: one with a SHA-256 hash of the source value, and one with the
-Fernet-encrypted value.
-
-The SHA-256 hash is not reversible (that is, the original value can't be
-recovered from the hash), but it is deterministic (the same source value will
-always have the same hash), so it can be used for indexing, unique constraints,
-and lookups.
-
-The Fernet-encrypted value is used only to recover the original data when
-querying the database.
-
-The same six ``DualField`` subclasses are included: ``DualTextField``,
-``DualCharField``, ``DualEmailField``, ``DualIntegerField``, ``DualDateField``,
-and ``DualDateTimeField``. Use them as you would any other field::
-
-    from django.db import models
-    from fernet_fields import DualEmailField
-
-
-    class MyModel(models.Model):
-        email = DualEmailField(unique=True)
-
-Unlike ``EncryptedField``, ``DualField`` supports ``db_index=True`` and
-``unique=True`` (still no ``primary_key=True``, though). Exact-match, ``__in``,
-and ``__isnull`` lookups are also permitted.
-
-Encryption keys are handled in the same way as for ``EncryptedField``.
-
-.. warning::
-
-   Because the SHA-256 hash is non-reversible, ``DualField`` still protects
-   your data in case of a database compromise. However, you do expose a bit
-   more information with ``DualField`` due to the deterministic hash. An
-   attacker can now see which rows have the same values and which have
-   different values (which an ``EncryptedField`` alone would not expose).
-
-   Also, because a SHA-256 hash can be computed quickly and no random salt is
-   used (using one would eliminate the lookup and indexability benefits), an
-   attacker with long-term access to your database and sufficient computing
-   power available may be able to brute-force guess the hashed values,
-   especially if they are short or easily guessable.
-
-   For these reasons (and for simplicity of implementation) use
-   ``EncryptedField`` whenever possible, and only use ``DualField`` when you
-   absolutely need lookups and/or a database-level unique constraint on an
-   encrypted field.
-
-
-Enabling updates
-~~~~~~~~~~~~~~~~
-
-Due to limitations of the Django ORM, Django's default ``QuerySet.update()``
-does not work correctly if a ``DualField`` is updated; the hashed value is
-updated (so lookups will see the new value) but the encrypted value is not.
-
-In order to enable ``QuerySet.update()`` on a ``DualField``, you must use
-``fernet_fields.DualQuerySet`` instead. A ``DualManager`` is provided which
-uses ``DualQuerySet``::
-
-    from django.db import models
-    import fernet_fields
-
-    class MyModel(models.Model):
-        email = fernet_fields.DualEmailField()
-
-        objects = fernet_fields.DualManager()
-
-For this simplest case (where you only want one default manager on your class,
-named ``objects``), you can instead just inherit from the ``DualModel`` base
-model class (which does nothing but add ``objects = DualManager()``)::
-
-    from django.db import models
-    import fernet_fields
-    from fernet_fields.models import DualModel
-
-    class MyModel(DualModel):
-        email = fernet_fields.DualEmailField()
-
-This is equivalent to the above snippet using ``DualManager`` explicitly.
-
-If you already have a custom ``Manager`` subclass, you can create a manager
-that uses ``DualQuerySet`` via ``Manager.from_queryset()``::
-
-    from django.db import models
-    import fernet_fields
-    from somewhere import MyManager
-
-    MyDualManager = MyManager.from_queryset(fernet_fields.DualQuerySet)
-
-    class MyModel(models.Model):
-        email = fernet_fields.DualEmailField()
-
-        objects = MyDualManager()
-
-
-Other field types
-~~~~~~~~~~~~~~~~~
-
-In order to create a ``DualField`` subclass for some other type of field, you
-must first create an ``EncryptedField`` for it, and then assign that
-``EncryptedField`` subclass to the ``encrypted_field_class`` attribute of your
-``DualField`` subclass::
-
-    import fernet_fields
-    from somewhere import MyField
-
-    class MyEncryptedField(fernet_fields.EncryptedField, MyField):
-        pass
-
-    class MyDualField(fernet_fields.DualField, MyField):
-        encrypted_field_class = MyEncryptedField
-
-
 
 Ordering
 --------
 
-Ordering a queryset by an ``EncryptedField`` or ``DualField`` will appear to
-work, but it will order according to the encrypted (or hashed) data, not the
-decrypted value, which is not very useful and probably not desired.
+Ordering a queryset by an ``EncryptedField`` will appear to work, but it will
+order according to the encrypted data, not the decrypted value, which is not
+very useful and probably not desired.
 
 
 Migrations
 ----------
 
-If migrating an existing non-encrypted field to its encrypted (or dual)
-counterpart, you won't be able to use a simple ``AlterField`` operation. Since
-your database has no access to the encryption key, it can't update the column
-values correctly. Instead, you'll need to do a three-step migration dance:
+If migrating an existing non-encrypted field to its encrypted counterpart, you
+won't be able to use a simple ``AlterField`` operation. Since your database has
+no access to the encryption key, it can't update the column values
+correctly. Instead, you'll need to do a three-step migration dance:
 
 1. Add the new encrypted field with a different name.
 2. Write a data migration (using RunPython and the ORM, not raw SQL) to copy
@@ -280,49 +158,6 @@ values correctly. Instead, you'll need to do a three-step migration dance:
    in the process).
 3. Remove the old field and (if needed) rename the new encrypted field to the
    old field's name.
-
-The same applies to migrating from an ``EncryptedField`` to a ``DualField`` or
-vice versa.
-
-
-Advanced lookups with HashField subclasses
-------------------------------------------
-
-If you need more complex lookups on an encrypted field (``__iexact``
-case-insensitive lookups, for instance), you can often emulate them by adding
-another column that stores the hash of a transformed version of the field's
-value. You can use ``fernet_fields.HashField`` for this. It's the underlying
-implementation used in ``DualField``, made available for use independently. You
-just instantiate it with the name of another field on the model whose value it
-should hash. You can subclass it and override the ``hash_value()`` method to
-perform transformations on a value before hashing.
-
-For instance, here's code to allow case-insensitive lookups of an encrypted
-email address::
-
-    from django.db import models
-    import fernet_fields as fernet
-
-    class LowerCasedHashField(fernet.HashField):
-        def hash_value(self, value):
-            return super(LowerCasedHashField, self).hash_value(value.lower())
-
-    class User(models.Model):
-        email = fernet.DualEmailField(unique=True)
-        # Hash of lower-cased email, for case-insensitive email comparisons.
-        email_lc = fields.LowerCasedHashField('email')
-
-This doesn't allow transparent use of ``__iexact`` lookups on the ``email``
-field, of course, but you can get the same effect by querying on the
-``HashField`` directly with a transformed value::
-
-    User.objects.filter(email_lc=some_email.lower())
-
-.. note::
-
-   ``HashField`` is not able to automatically update itself if you update its
-   source field using a ``.update()`` query. In this case, you should also
-   update the ``HashField`` yourself in the same ``.update()``.
 
 
 Contributing

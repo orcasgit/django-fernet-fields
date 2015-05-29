@@ -4,6 +4,9 @@ CHANGES
 master (unreleased)
 -------------------
 
+* Remove DualField and HashField. The only cases where they are useful, they
+  aren't secure.
+
 
 0.2.1 (2015.05.28)
 ------------------
