@@ -11,12 +11,9 @@ django-fernet-fields
 .. image:: https://readthedocs.org/projects/django-fernet-fields/badge/?version=latest
    :target: https://readthedocs.org/projects/django-fernet-fields/?badge=latest
    :alt: Documentation Status
-.. image:: https://pypip.in/v/django-fernet-fields/badge.png
+.. image:: https://badge.fury.io/py/django-fernet-fields.svg
    :target: https://pypi.python.org/pypi/django-fernet-fields
    :alt: Latest version
-.. image:: https://pypip.in/license/django-fernet-fields/badge.png
-   :target: https://pypi.python.org/pypi/django-fernet-fields
-   :alt: License
 
 `Fernet`_ symmetric encryption for Django model fields, using the
 `cryptography`_ library.
