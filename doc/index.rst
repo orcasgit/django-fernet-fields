@@ -126,8 +126,7 @@ Because Fernet encryption is not deterministic (the same source text encrypted
 using the same key will result in a different encrypted token each time),
 indexing or enforcing uniqueness or performing lookups against encrypted data
 is useless. Every encrypted value will always be different, and every
-exact-match lookup will fail; some other lookup types could appear to succeed,
-but the results would be meaningless.
+exact-match lookup will fail; other lookups' results would be meaningless.
 
 For this reason, ``EncryptedField`` will raise
 ``django.core.exceptions.ImproperlyConfigured`` if passed any of
@@ -139,9 +138,16 @@ lookup on an ``EncryptedField`` will raise
 Ordering
 --------
 
-Ordering a queryset by an ``EncryptedField`` will appear to work, but it will
-order according to the encrypted data, not the decrypted value, which is not
-very useful and probably not desired.
+Ordering a queryset by an ``EncryptedField`` will not raise an error, but it
+will order according to the encrypted data, not the decrypted value, which is
+not very useful and probably not desired.
+
+Raising an error would be better, but there's no mechanism in Django for a
+field class to declare that it doesn't support ordering. It could be done
+easily enough with a custom queryset and model manager that overrides
+`order_by` to check the supplied field names. You might consider doing this for
+your models, if you're concerned that you might accidentally order by an
+``EncryptedField`` and get junk ordering without noticing.
 
 
 Migrations
