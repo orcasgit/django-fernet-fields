@@ -4,31 +4,36 @@ env:
   global:
     - DJF_USERNAME=postgres
   # Keep this list up to date using `tox -l`
+
+  # PyPy tests disabled pending resolution of
+  # https://github.com/travis-ci/travis-ci/issues/4756
+
+  # Travis also doesn't have Python 3.5 available yet.
   matrix:
     - TOXENV=py27-django18-pg
     - TOXENV=py27-django18-sqlite
-    - TOXENV=py27-django18-mysql
-    - TOXENV=py27-djangotrunk-pg
-    - TOXENV=py27-djangotrunk-sqlite
-    - TOXENV=py27-djangotrunk-mysql
     - TOXENV=py33-django18-pg
     - TOXENV=py33-django18-sqlite
-    - TOXENV=py33-djangotrunk-pg
-    - TOXENV=py33-djangotrunk-sqlite
     - TOXENV=py34-django18-pg
     - TOXENV=py34-django18-sqlite
+    # - TOXENV=pypy-django18-pg
+    # - TOXENV=pypy-django18-sqlite
+    # - TOXENV=pypy3-django18-pg
+    # - TOXENV=pypy3-django18-sqlite
+    - TOXENV=py27-djangotrunk-pg
+    - TOXENV=py27-djangotrunk-sqlite
     - TOXENV=py34-djangotrunk-pg
     - TOXENV=py34-djangotrunk-sqlite
-    - TOXENV=pypy-django18-pg
-    - TOXENV=pypy-django18-sqlite
-    - TOXENV=pypy-django18-mysql
-    - TOXENV=pypy-djangotrunk-pg
-    - TOXENV=pypy-djangotrunk-sqlite
-    - TOXENV=pypy-djangotrunk-mysql
-    - TOXENV=pypy3-django18-pg
-    - TOXENV=pypy3-django18-sqlite
-    - TOXENV=pypy3-djangotrunk-pg
-    - TOXENV=pypy3-djangotrunk-sqlite
+    # - TOXENV=py35-djangotrunk-pg
+    # - TOXENV=py35-djangotrunk-sqlite
+    # - TOXENV=pypy-djangotrunk-pg
+    # - TOXENV=pypy-djangotrunk-sqlite
+    # - TOXENV=pypy3-djangotrunk-pg
+    # - TOXENV=pypy3-djangotrunk-sqlite
+    - TOXENV=py27-django18-mysql
+    - TOXENV=py27-djangotrunk-mysql
+    # - TOXENV=pypy-django18-mysql
+    # - TOXENV=pypy-djangotrunk-mysql
     - TOXENV=flake8
     - TOXENV=docs
 

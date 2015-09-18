@@ -69,6 +69,17 @@ both ``EncryptedField`` and the other field class::
         pass
 
 
+Nullable fields
+~~~~~~~~~~~~~~~
+
+Nullable encrypted fields are allowed; a ``None`` value in Python is translated
+to a real ``NULL`` in the database column. Note that this trivially reveals the
+presence or absence of data in the column to an attacker. If this is a problem
+for your case, avoid using a nullable encrypted field; instead store some other
+sentinel "empty" value (which will be encrypted just like any other value) in a
+non-nullable encrypted field.
+
+
 Keys
 ----
 
@@ -145,8 +156,8 @@ not very useful and probably not desired.
 Raising an error would be better, but there's no mechanism in Django for a
 field class to declare that it doesn't support ordering. It could be done
 easily enough with a custom queryset and model manager that overrides
-`order_by` to check the supplied field names. You might consider doing this for
-your models, if you're concerned that you might accidentally order by an
+``order_by()`` to check the supplied field names. You might consider doing this
+for your models, if you're concerned that you might accidentally order by an
 ``EncryptedField`` and get junk ordering without noticing.
 
 
