@@ -114,3 +114,23 @@ def test_nullable(db):
     found = models.EncryptedNullable.objects.get()
 
     assert found.value is None
+
+
+def test_isnull_false_lookup(db):
+    """isnull False lookup succeeds on nullable fields"""
+    test_val = 3
+    models.EncryptedNullable.objects.create(value=None)
+    models.EncryptedNullable.objects.create(value=test_val)
+    found = models.EncryptedNullable.objects.get(value__isnull=False)
+
+    assert found.value == test_val
+
+
+def test_isnull_true_lookup(db):
+    """isnull True lookup succeeds on nullable fields"""
+    test_val = 3
+    models.EncryptedNullable.objects.create(value=None)
+    models.EncryptedNullable.objects.create(value=test_val)
+    found = models.EncryptedNullable.objects.get(value__isnull=True)
+
+    assert found.value is None

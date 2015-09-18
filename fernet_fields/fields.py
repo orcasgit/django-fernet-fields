@@ -72,10 +72,14 @@ class EncryptedField(models.Field):
             return connection.Database.Binary(retval)
 
     def get_prep_lookup(self, lookup_type, value):
-        raise FieldError(
-            "%s '%s' does not support lookups."
-            % (self.__class__.__name__, self.name)
-        )
+        if lookup_type == 'isnull':
+            return super(EncryptedField, self).get_prep_lookup(lookup_type,
+                                                               value)
+        else:
+            raise FieldError(
+                "%s '%s' does not support lookups."
+                % (self.__class__.__name__, self.name)
+            )
 
     def from_db_value(self, value, expression, connection, context):
         if value is not None:
