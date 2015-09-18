@@ -1,10 +1,10 @@
 CHANGES
 =======
 
-master (unreleased)
--------------------
+0.4 (2015.09.18)
+----------------
 
-* Add `isnull` lookup
+* Add `isnull` lookup.
 
 
 0.3 (2015.05.29)
