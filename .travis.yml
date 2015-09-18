@@ -7,6 +7,8 @@ env:
 
   # PyPy tests disabled pending resolution of
   # https://github.com/travis-ci/travis-ci/issues/4756
+
+  # Travis also doesn't have Python 3.5 available yet.
   matrix:
     - TOXENV=py27-django18-pg
     - TOXENV=py27-django18-sqlite
@@ -22,8 +24,8 @@ env:
     - TOXENV=py27-djangotrunk-sqlite
     - TOXENV=py34-djangotrunk-pg
     - TOXENV=py34-djangotrunk-sqlite
-    - TOXENV=py35-djangotrunk-pg
-    - TOXENV=py35-djangotrunk-sqlite
+    # - TOXENV=py35-djangotrunk-pg
+    # - TOXENV=py35-djangotrunk-sqlite
     # - TOXENV=pypy-djangotrunk-pg
     # - TOXENV=pypy-djangotrunk-sqlite
     # - TOXENV=pypy3-djangotrunk-pg
