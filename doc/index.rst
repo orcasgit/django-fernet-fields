@@ -131,7 +131,7 @@ exact-match lookup will fail; other lookups' results would be meaningless.
 For this reason, ``EncryptedField`` will raise
 ``django.core.exceptions.ImproperlyConfigured`` if passed any of
 ``db_index=True``, ``unique=True``, or ``primary_key=True``, and any type of
-lookup on an ``EncryptedField`` will raise
+lookup on an ``EncryptedField`` except for ``isnull`` will raise
 ``django.core.exceptions.FieldError``.
 
 

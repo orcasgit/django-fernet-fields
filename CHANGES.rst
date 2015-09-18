@@ -4,6 +4,8 @@ CHANGES
 master (unreleased)
 -------------------
 
+* Add `isnull` lookup
+
 
 0.3 (2015.05.29)
 ----------------
