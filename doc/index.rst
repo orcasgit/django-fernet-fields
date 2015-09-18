@@ -156,8 +156,8 @@ not very useful and probably not desired.
 Raising an error would be better, but there's no mechanism in Django for a
 field class to declare that it doesn't support ordering. It could be done
 easily enough with a custom queryset and model manager that overrides
-`order_by` to check the supplied field names. You might consider doing this for
-your models, if you're concerned that you might accidentally order by an
+``order_by()`` to check the supplied field names. You might consider doing this
+for your models, if you're concerned that you might accidentally order by an
 ``EncryptedField`` and get junk ordering without noticing.
 
 
