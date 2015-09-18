@@ -69,6 +69,17 @@ both ``EncryptedField`` and the other field class::
         pass
 
 
+Nullable fields
+~~~~~~~~~~~~~~~
+
+Nullable encrypted fields are allowed; a ``None`` value in Python is translated
+to a real ``NULL`` in the database column. Note that this trivially reveals the
+presence or absence of data in the column to an attacker. If this is a problem
+for your case, avoid using a nullable encrypted field; instead store some other
+sentinel "empty" value (which will be encrypted just like any other value) in a
+non-nullable encrypted field.
+
+
 Keys
 ----
 
