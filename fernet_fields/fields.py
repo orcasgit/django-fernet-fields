@@ -71,6 +71,15 @@ class EncryptedField(models.Field):
             retval = self.fernet.encrypt(force_bytes(value))
             return connection.Database.Binary(retval)
 
+    def get_lookup(self, lookup_name):
+        if lookup_name == 'isnull':
+            return super(EncryptedField, self).get_lookup(lookup_name)
+        else:
+            raise FieldError(
+                "%s '%s' does not support lookups."
+                % (self.__class__.__name__, self.name)
+            )
+
     def get_prep_lookup(self, lookup_type, value):
         if lookup_type == 'isnull':
             return super(EncryptedField, self).get_prep_lookup(lookup_type,
