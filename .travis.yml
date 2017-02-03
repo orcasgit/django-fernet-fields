@@ -15,6 +15,16 @@ env:
     - TOXENV=pypy-django18-sqlite
     - TOXENV=pypy3-django18-pg
     - TOXENV=pypy3-django18-sqlite
+    - TOXENV=py27-django110-pg
+    - TOXENV=py27-django110-sqlite
+    - TOXENV=py33-django110-pg
+    - TOXENV=py33-django110-sqlite
+    - TOXENV=py34-django110-pg
+    - TOXENV=py34-django110-sqlite
+    - TOXENV=pypy-django110-pg
+    - TOXENV=pypy-django110-sqlite
+    - TOXENV=pypy3-django110-pg
+    - TOXENV=pypy3-django110-sqlite
     - TOXENV=py27-djangotrunk-pg
     - TOXENV=py27-djangotrunk-sqlite
     - TOXENV=py34-djangotrunk-pg
@@ -25,8 +35,10 @@ env:
     - TOXENV=pypy-djangotrunk-pg
     - TOXENV=pypy-djangotrunk-sqlite
     - TOXENV=py27-django18-mysql
+    - TOXENV=py27-django110-mysql
     - TOXENV=py27-djangotrunk-mysql
     - TOXENV=pypy-django18-mysql
+    - TOXENV=pypy-django110-mysql
     - TOXENV=pypy-djangotrunk-mysql
     - TOXENV=flake8
     - TOXENV=docs
