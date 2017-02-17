@@ -1,67 +1,17 @@
 language: python
+python:
+  - "2.7"
+  - "3.3",
+  - "3.4",
+  - "3.5",
+  - "3.6"
 
 env:
   global:
     - DJF_USERNAME=postgres
-  # Keep this list up to date using `tox -l`
-  matrix:
-    - TOXENV=py27-django18-pg
-    - TOXENV=py27-django18-sqlite
-    - TOXENV=py33-django18-pg
-    - TOXENV=py33-django18-sqlite
-    - TOXENV=py34-django18-pg
-    - TOXENV=py34-django18-sqlite
-    - TOXENV=pypy-django18-pg
-    - TOXENV=pypy-django18-sqlite
-    - TOXENV=pypy3-django18-pg
-    - TOXENV=pypy3-django18-sqlite
-    - TOXENV=py27-django19-pg
-    - TOXENV=py27-django19-sqlite
-    - TOXENV=py27-django110-pg
-    - TOXENV=py27-django110-sqlite
-    - TOXENV=py34-django19-pg
-    - TOXENV=py34-django19-sqlite
-    - TOXENV=py34-django110-pg
-    - TOXENV=py34-django110-sqlite
-    - TOXENV=py35-django19-pg
-    - TOXENV=py35-django19-sqlite
-    - TOXENV=py35-django110-pg
-    - TOXENV=py35-django110-sqlite
-    - TOXENV=pypy-django19-pg
-    - TOXENV=pypy-django19-sqlite
-    - TOXENV=pypy-django110-pg
-    - TOXENV=pypy-django110-sqlite
-    - TOXENV=py27-django111-pg
-    - TOXENV=py27-django111-sqlite
-    - TOXENV=py34-django111-pg
-    - TOXENV=py34-django111-sqlite
-    - TOXENV=py35-django111-pg
-    - TOXENV=py35-django111-sqlite
-    - TOXENV=py36-django111-pg
-    - TOXENV=py36-django111-sqlite
-    - TOXENV=pypy-django111-pg
-    - TOXENV=pypy-django111-sqlite
-    - TOXENV=py35-djangotrunk-pg
-    - TOXENV=py35-djangotrunk-sqlite
-    - TOXENV=py36-djangotrunk-pg
-    - TOXENV=py36-djangotrunk-sqlite
-    - TOXENV=pypy-djangotrunk-pg
-    - TOXENV=pypy-djangotrunk-sqlite
-    - TOXENV=py27-django18-mysql
-    - TOXENV=py27-django19-mysql
-    - TOXENV=py27-django110-mysql
-    - TOXENV=py27-django111-mysql
-    - TOXENV=py27-djangotrunk-mysql
-    - TOXENV=pypy-django18-mysql
-    - TOXENV=pypy-django19-mysql
-    - TOXENV=pypy-django110-mysql
-    - TOXENV=pypy-django111-mysql
-    - TOXENV=pypy-djangotrunk-mysql
-    - TOXENV=flake8
-    - TOXENV=docs
 
-install: travis_retry pip install tox coveralls
+install: travis_retry pip install coveralls tox-travis
 
-script: tox -e $TOXENV
+script: tox
 
 after_success: coveralls
