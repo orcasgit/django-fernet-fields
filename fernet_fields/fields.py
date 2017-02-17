@@ -71,16 +71,6 @@ class EncryptedField(models.Field):
             retval = self.fernet.encrypt(force_bytes(value))
             return connection.Database.Binary(retval)
 
-    def get_prep_lookup(self, lookup_type, value):
-        if lookup_type == 'isnull':
-            return super(EncryptedField, self).get_prep_lookup(lookup_type,
-                                                               value)
-        else:
-            raise FieldError(
-                "%s '%s' does not support lookups."
-                % (self.__class__.__name__, self.name)
-            )
-
     def from_db_value(self, value, expression, connection, context):
         if value is not None:
             value = bytes(value)
@@ -98,6 +88,22 @@ class EncryptedField(models.Field):
             return super(EncryptedField, self).validators
         finally:
             del self.__dict__['_internal_type']
+
+
+def get_prep_lookup(self):
+    """Handles lookups for EncryptedField fields"""
+    if self.lookup_name == 'isnull':
+        return super(self.__class__, self).get_prep_lookup()
+    else:
+        raise FieldError("Encrypted fields do not support lookups.")
+
+
+# Register all field lookups to our handler
+for name, lookup in models.Field.class_lookups.items():
+    # Dynamically create classes that inherit from the right lookups
+    EncryptedField.register_lookup(type('EncryptedField' + name, (lookup,), {
+        'get_prep_lookup': get_prep_lookup
+    }))
 
 
 class EncryptedTextField(EncryptedField, models.TextField):
