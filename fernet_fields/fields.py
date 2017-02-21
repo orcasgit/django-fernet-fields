@@ -96,7 +96,7 @@ def get_prep_lookup(self):
         self.lhs.field.__class__.__name__, self.lookup_name))
 
 
-# Register all field lookups to our handler
+# Register all field lookups (except 'isnull') to our handler
 for name, lookup in models.Field.class_lookups.items():
     # Dynamically create classes that inherit from the right lookups
     if name != 'isnull':
