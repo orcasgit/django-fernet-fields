@@ -2,7 +2,7 @@ from cryptography.fernet import Fernet
 from datetime import date, datetime
 
 from django.core.exceptions import FieldError, ImproperlyConfigured
-from django.db import connection
+from django.db import connection, models as dj_models
 from django.utils.encoding import force_bytes, force_text
 import pytest
 
@@ -103,9 +103,15 @@ class TestEncryptedFieldQueries(object):
     def test_lookups_raise_field_error(self, db, model, vals):
         """Lookups are not allowed (they cannot succeed)."""
         model.objects.create(value=vals[0])
+        field_name = model._meta.get_field('value').__class__.__name__
+        lookups = set(dj_models.Field.class_lookups) - set(['isnull'])
 
-        with pytest.raises(FieldError):
-            model.objects.get(value=vals[0])
+        for lookup in lookups:
+            with pytest.raises(FieldError) as exc:
+                model.objects.get(**{'value__' + lookup: vals[0]})
+            assert field_name in exc.value.message
+            assert lookup in exc.value.message
+            assert 'does not support lookups' in exc.value.message
 
 
 def test_nullable(db):
