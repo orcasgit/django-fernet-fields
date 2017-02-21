@@ -91,19 +91,19 @@ class EncryptedField(models.Field):
 
 
 def get_prep_lookup(self):
-    """Handles lookups for EncryptedField fields"""
-    if self.lookup_name == 'isnull':
-        return super(self.__class__, self).get_prep_lookup()
-    else:
-        raise FieldError("Encrypted fields do not support lookups.")
+    """Raise errors for unsupported lookups"""
+    raise FieldError("{} '{}' does not support lookups".format(
+        self.lhs.field.__class__.__name__, self.lookup_name))
 
 
 # Register all field lookups to our handler
 for name, lookup in models.Field.class_lookups.items():
     # Dynamically create classes that inherit from the right lookups
-    EncryptedField.register_lookup(type('EncryptedField' + name, (lookup,), {
-        'get_prep_lookup': get_prep_lookup
-    }))
+    if name != 'isnull':
+        lookup_class = type('EncryptedField' + name, (lookup,), {
+            'get_prep_lookup': get_prep_lookup
+        })
+        EncryptedField.register_lookup(lookup_class)
 
 
 class EncryptedTextField(EncryptedField, models.TextField):
