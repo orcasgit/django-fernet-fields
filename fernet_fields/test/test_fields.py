@@ -109,9 +109,9 @@ class TestEncryptedFieldQueries(object):
         for lookup in lookups:
             with pytest.raises(FieldError) as exc:
                 model.objects.get(**{'value__' + lookup: vals[0]})
-            assert field_name in exc.value.message
-            assert lookup in exc.value.message
-            assert 'does not support lookups' in exc.value.message
+            assert field_name in str(exc.value)
+            assert lookup in str(exc.value)
+            assert 'does not support lookups' in str(exc.value)
 
 
 def test_nullable(db):
