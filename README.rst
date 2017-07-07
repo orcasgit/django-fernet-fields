@@ -19,7 +19,7 @@ django-fernet-fields
 `cryptography`_ library.
 
 ``django-fernet-fields`` supports `Django`_ 1.8.2 and later on Python 2.7, 3.3,
-3.4, 3.5, pypy, and pypy3.
+3.4, pypy, and pypy3.
 
 Only PostgreSQL, SQLite, and MySQL are tested, but any Django database backend
 with support for ``BinaryField`` should work.
@@ -47,3 +47,4 @@ Contributing
 See the `contributing docs`_.
 
 .. _contributing docs: https://github.com/orcasgit/django-fernet-fields/blob/master/CONTRIBUTING.rst
+
