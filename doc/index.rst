@@ -169,7 +169,7 @@ won't be able to use a simple ``AlterField`` operation. Since your database has
 no access to the encryption key, it can't update the column values
 correctly. Instead, you'll need to do a three-step migration dance:
 
-1. Add the new encrypted field with a different name.
+1. Add the new encrypted field with a different name and initialize its values as `null`, otherwise decryption will be attempted before anything has been encrypted.
 2. Write a data migration (using RunPython and the ORM, not raw SQL) to copy
    the values from the old field to the new (which automatically encrypts them
    in the process).
