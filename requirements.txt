@@ -1,6 +1,6 @@
 # Requirements for running django-fernet-fields tests
 
-Django>=1.8.2
+Django>=1.11
 
 cryptography>=0.9
 
