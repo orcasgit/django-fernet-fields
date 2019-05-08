@@ -12,7 +12,13 @@ env:
   global:
     - DJF_USERNAME=postgres
 
+services:
+  - postgresql
+
 install: travis_retry pip install coveralls tox-travis
+
+before_script:
+  - psql -c 'create database djftest;' -U postgres
 
 script: tox
 
