@@ -18,6 +18,7 @@ setup(
     version=get_version(),
     description="Fernet-encrypted model fields for Django",
     long_description=long_description,
+    long_description_content_type='text/x-rst',
     author='ORCAS, Inc',
     author_email='orcastech@orcasinc.com',
     url='https://github.com/orcasgit/django-fernet-fields/',
