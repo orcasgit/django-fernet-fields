@@ -60,8 +60,8 @@ versions) and generate a coverage report in the ``htmlcov/`` directory::
 
     make test
 
-This requires that you have ``python2.7``, ``python3.3``, ``python3.4``,
-``pypy``, and ``pypy3`` binaries on your system's shell path.
+This requires that you have ``python2.7``, ``python3.5``, ``python3.6``,
+``python3.7``, ``pypy``, and ``pypy3`` binaries on your system's shell path.
 
 To install PostgreSQL on Debian-based systems::
 
