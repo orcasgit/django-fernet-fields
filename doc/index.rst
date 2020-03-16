@@ -177,24 +177,6 @@ correctly. Instead, you'll need to do a three-step migration dance:
    old field's name.
 
 
-Note about deploying to Heroku
-------------------------------
-
-An important caveat when deploying an app dependent of `Fernet` to Heroku: you
-need to specify all requirements (even dependencies of dependencies) explicitly.
-In general, this is a good practice for version pinning purposes. But it's
-necessary for Fernet on Heroku because it depends on `cryptography`_ library,
-which in turn depends on libffi, a C library. When cryptography is explicitly
-defined on requirements.txt, `Heroku knows`_ it depends on libffi and installs it.
-
-Therefore, an easy solution is to freeze your requirements after installing `Fernet`::
-
-    pip freeze > requirements.txt
-
-.. _cryptography: https://cryptography.io/en/latest/
-.. _Heroku knows: https://github.com/heroku/heroku-buildpack-python/blob/master/bin/steps/cryptography
-
-
 Contributing
 ------------
 
