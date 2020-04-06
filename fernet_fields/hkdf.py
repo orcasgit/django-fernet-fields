@@ -15,7 +15,7 @@ def derive_fernet_key(input_key):
     """Derive a 32-bit b64-encoded Fernet key from arbitrary input key."""
     hkdf = HKDF(
         algorithm=hashes.SHA256(),
-        length=32,
+        length=48,
         salt=salt,
         info=info,
         backend=backend,

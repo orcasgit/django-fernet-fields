@@ -1,4 +1,8 @@
-from cryptography.fernet import Fernet, MultiFernet
+import base64
+import os
+
+from cryptography.fernet import Fernet as OldFernet, MultiFernet
+from cryptography.hazmat.backends import default_backend
 from django.conf import settings
 from django.core.exceptions import FieldError, ImproperlyConfigured
 from django.db import models
@@ -16,7 +20,29 @@ __all__ = [
     'EncryptedIntegerField',
     'EncryptedDateField',
     'EncryptedDateTimeField',
+    'StrongerFernet',
 ]
+
+
+class StrongerFernet(OldFernet):
+    # noinspection PyMissingConstructor
+    def __init__(self, key, backend=None):
+        if backend is None:
+            backend = default_backend()
+
+        key = base64.urlsafe_b64decode(key)
+        if len(key) != 48:
+            raise ValueError(
+                "Fernet key must be 48 url-safe base64-encoded bytes."
+            )
+
+        self._signing_key = key[:16]
+        self._encryption_key = key[16:]
+        self._backend = backend
+
+    @classmethod
+    def generate_key(cls):
+        return base64.urlsafe_b64encode(os.urandom(48))
 
 
 class EncryptedField(models.Field):
@@ -57,8 +83,8 @@ class EncryptedField(models.Field):
     @cached_property
     def fernet(self):
         if len(self.fernet_keys) == 1:
-            return Fernet(self.fernet_keys[0])
-        return MultiFernet([Fernet(k) for k in self.fernet_keys])
+            return StrongerFernet(self.fernet_keys[0])
+        return MultiFernet([StrongerFernet(k) for k in self.fernet_keys])
 
     def get_internal_type(self):
         return self._internal_type
