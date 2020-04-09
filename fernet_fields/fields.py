@@ -65,6 +65,7 @@ class EncryptedField(models.Field):
                 "%s does not support db_index=True."
                 % self.__class__.__name__
             )
+        self.allowed_unencrypted_values = kwargs.pop('allowed_unencrypted_values', [])
         super(EncryptedField, self).__init__(*args, **kwargs)
 
     @cached_property
@@ -99,8 +100,9 @@ class EncryptedField(models.Field):
 
     def from_db_value(self, value, expression, connection, context):
         if value is not None:
-            value = bytes(value)
-            return self.to_python(force_text(self.fernet.decrypt(value)))
+            if value not in self.allowed_unencrypted_values:
+                value = self.fernet.decrypt(bytes(value))
+            return self.to_python(force_text(value))
 
     @cached_property
     def validators(self):
