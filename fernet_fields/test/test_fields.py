@@ -1,12 +1,15 @@
-from cryptography.fernet import Fernet
 from datetime import date, datetime
+
+import pytest
+from cryptography.fernet import Fernet
 
 from django.core.exceptions import FieldError, ImproperlyConfigured
 from django.db import connection, models as dj_models
-from django.utils.encoding import force_bytes, force_text
-import pytest
+from django.utils.encoding import force_bytes
 
 import fernet_fields as fields
+from fernet_fields.utils import force_text
+
 from . import models
 
 
