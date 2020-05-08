@@ -1,8 +1,7 @@
-import django
+from django import VERSION as DJANGO_VERSION
 
 
-DJANGO_VERSION = django.get_version().split('.')
-if DJANGO_VERSION[0] < "3":
+if DJANGO_VERSION[0] < 3:
     from django.utils.encoding import force_text
 else:
     from django.utils.encoding import force_str as force_text
