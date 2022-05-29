@@ -101,7 +101,7 @@ class EncryptedField(models.Field):
     def from_db_value(self, value, expression, connection, context):
         if value is not None:
             if value not in self.allowed_unencrypted_values:
-                value = self.fernet.decrypt(bytes(value))
+                value = self.fernet.decrypt(force_bytes(value))
             return self.to_python(force_text(value))
 
     @cached_property
