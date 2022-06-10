@@ -2,7 +2,7 @@ from cryptography.fernet import Fernet, MultiFernet
 from django.conf import settings
 from django.core.exceptions import FieldError, ImproperlyConfigured
 from django.db import models
-from django.utils.encoding import force_bytes, force_text
+from django.utils.encoding import force_bytes, force_str
 from django.utils.functional import cached_property
 
 from . import hkdf
@@ -74,7 +74,7 @@ class EncryptedField(models.Field):
     def from_db_value(self, value, expression, connection, *args):
         if value is not None:
             value = bytes(value)
-            return self.to_python(force_text(self.fernet.decrypt(value)))
+            return self.to_python(force_str(self.fernet.decrypt(value)))
 
     @cached_property
     def validators(self):
