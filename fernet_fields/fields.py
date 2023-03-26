@@ -6,7 +6,7 @@ from cryptography.hazmat.backends import default_backend
 from django.conf import settings
 from django.core.exceptions import FieldError, ImproperlyConfigured
 from django.db import models
-from django.utils.encoding import force_bytes, force_text
+from django.utils.encoding import force_bytes, force_str
 from django.utils.functional import cached_property
 
 from . import hkdf
@@ -102,7 +102,7 @@ class EncryptedField(models.Field):
         if value is not None:
             if value not in self.allowed_unencrypted_values:
                 value = self.fernet.decrypt(force_bytes(value))
-            return self.to_python(force_text(value))
+            return self.to_python(force_str(value))
 
     @cached_property
     def validators(self):
