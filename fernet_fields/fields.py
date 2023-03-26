@@ -98,7 +98,7 @@ class EncryptedField(models.Field):
             retval = self.fernet.encrypt(force_bytes(value))
             return connection.Database.Binary(retval)
 
-    def from_db_value(self, value, expression, connection, context):
+    def from_db_value(self, value, expression, connection, context=None):
         if value is not None:
             if value not in self.allowed_unencrypted_values:
                 value = self.fernet.decrypt(force_bytes(value))
