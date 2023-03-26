@@ -10,6 +10,7 @@ if platform.python_implementation() == 'PyPy':
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        # matches travis config
         'NAME': 'djftest',
         'TEST': {
             'NAME': 'djftest',
