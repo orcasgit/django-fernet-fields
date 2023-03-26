@@ -1,3 +1,3 @@
 from .fields import *  # noqa
 
-__version__ = '0.6'
+__version__ = '0.5.1.3'

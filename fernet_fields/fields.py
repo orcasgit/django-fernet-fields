@@ -1,8 +1,12 @@
-from cryptography.fernet import Fernet, MultiFernet
+import base64
+import os
+
+from cryptography.fernet import Fernet as OldFernet, MultiFernet
+from cryptography.hazmat.backends import default_backend
 from django.conf import settings
 from django.core.exceptions import FieldError, ImproperlyConfigured
 from django.db import models
-from django.utils.encoding import force_bytes, force_text
+from django.utils.encoding import force_bytes, force_str
 from django.utils.functional import cached_property
 
 from . import hkdf
@@ -16,7 +20,29 @@ __all__ = [
     'EncryptedIntegerField',
     'EncryptedDateField',
     'EncryptedDateTimeField',
+    'StrongerFernet',
 ]
+
+
+class StrongerFernet(OldFernet):
+    # noinspection PyMissingConstructor
+    def __init__(self, key, backend=None):
+        if backend is None:
+            backend = default_backend()
+
+        key = base64.urlsafe_b64decode(key)
+        if len(key) != 48:
+            raise ValueError(
+                "Fernet key must be 48 url-safe base64-encoded bytes."
+            )
+
+        self._signing_key = key[:16]
+        self._encryption_key = key[16:]
+        self._backend = backend
+
+    @classmethod
+    def generate_key(cls):
+        return base64.urlsafe_b64encode(os.urandom(48))
 
 
 class EncryptedField(models.Field):
@@ -39,6 +65,7 @@ class EncryptedField(models.Field):
                 "%s does not support db_index=True."
                 % self.__class__.__name__
             )
+        self.allowed_unencrypted_values = kwargs.pop('allowed_unencrypted_values', [])
         super(EncryptedField, self).__init__(*args, **kwargs)
 
     @cached_property
@@ -57,8 +84,8 @@ class EncryptedField(models.Field):
     @cached_property
     def fernet(self):
         if len(self.fernet_keys) == 1:
-            return Fernet(self.fernet_keys[0])
-        return MultiFernet([Fernet(k) for k in self.fernet_keys])
+            return StrongerFernet(self.fernet_keys[0])
+        return MultiFernet([StrongerFernet(k) for k in self.fernet_keys])
 
     def get_internal_type(self):
         return self._internal_type
@@ -73,8 +100,9 @@ class EncryptedField(models.Field):
 
     def from_db_value(self, value, expression, connection, *args):
         if value is not None:
-            value = bytes(value)
-            return self.to_python(force_text(self.fernet.decrypt(value)))
+            if value not in self.allowed_unencrypted_values:
+                value = self.fernet.decrypt(force_bytes(value))
+            return self.to_python(force_str(value))
 
     @cached_property
     def validators(self):

@@ -1,4 +1,3 @@
-from cryptography.fernet import Fernet
 from datetime import date, datetime
 
 from django.core.exceptions import FieldError, ImproperlyConfigured
@@ -29,8 +28,8 @@ class TestEncryptedField(object):
         settings.FERNET_KEYS = ['key1', 'key2']
         f = fields.EncryptedTextField()
 
-        enc1 = Fernet(f.fernet_keys[0]).encrypt(b'enc1')
-        enc2 = Fernet(f.fernet_keys[1]).encrypt(b'enc2')
+        enc1 = fields.StrongerFernet(f.fernet_keys[0]).encrypt(b'enc1')
+        enc2 = fields.StrongerFernet(f.fernet_keys[1]).encrypt(b'enc2')
 
         assert f.fernet.decrypt(enc1) == b'enc1'
         assert f.fernet.decrypt(enc2) == b'enc2'
@@ -38,10 +37,10 @@ class TestEncryptedField(object):
     def test_no_hkdf(self, settings):
         """Can set FERNET_USE_HKDF=False to avoid HKDF."""
         settings.FERNET_USE_HKDF = False
-        k1 = Fernet.generate_key()
+        k1 = fields.StrongerFernet.generate_key()
         settings.FERNET_KEYS = [k1]
         f = fields.EncryptedTextField()
-        fernet = Fernet(k1)
+        fernet = fields.StrongerFernet(k1)
 
         assert fernet.decrypt(f.fernet.encrypt(b'foo')) == b'foo'
 
