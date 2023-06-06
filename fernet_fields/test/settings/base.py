@@ -5,3 +5,5 @@ INSTALLED_APPS = [
 SECRET_KEY = 'secret'
 
 SILENCED_SYSTEM_CHECKS = ['1_7.W001']
+
+USE_TZ = False

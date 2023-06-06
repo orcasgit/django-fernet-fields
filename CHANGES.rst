@@ -4,6 +4,13 @@ CHANGES
 master (unreleased)
 -------------------
 
+0.7 (2020.05.05)
+----------------
+
+* Support Django 2.0 through 4.0
+* Drop support for Python 3.5 and 3.6
+* Add support for Python 3.8
+
 0.6 (2019.05.10)
 ----------------
 
